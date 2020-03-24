@@ -139,7 +139,7 @@ def eval_policy(policy, env_name, seed, eval_episodes=10):
 if __name__ == "__main__":
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--env", default="Hopper-v3")               # OpenAI gym environment name
+	parser.add_argument("--env", default="Hopper-v1")               # OpenAI gym environment name
 	parser.add_argument("--seed", default=0, type=int)              # Sets Gym, PyTorch and Numpy seeds
 	parser.add_argument("--buffer_name", default="Robust")          # Prepends name to filename
 	parser.add_argument("--eval_freq", default=5e3, type=float)     # How often (time steps) we evaluate
