@@ -1,1 +1,6 @@
 .idea*
+buffers/*
+models/*
+results/*
+__pycache__/*
+.DS_Store
