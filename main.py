@@ -113,6 +113,32 @@ def train_BCQ(state_dim, action_dim, max_action, device, args):
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")
 
+def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
+	# For saving files
+	setting = f"{args.env}_{args.seed}"
+	buffer_name = f"{args.buffer_name}_{setting}"
+
+	# Initialize policy
+	policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device, args.discount, args.tau, args.lmbda, args.phi)
+
+	# Load buffer
+	replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
+	replay_buffer.load(f"./buffers/{buffer_name}")
+
+	evaluations = []
+	episode_num = 0
+	done = True
+	training_iters = 0
+
+	while training_iters < args.max_timesteps:
+		pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
+
+		evaluations.append(eval_policy(policy, args.env, args.seed))
+		np.save(f"./results/BCQState_{setting}", evaluations)
+
+		training_iters += args.eval_freq
+		print(f"Training iterations: {training_iters}")
+
 
 # Runs policy for X episodes and returns average reward
 # A fixed seed is used for the eval environment
@@ -154,6 +180,7 @@ if __name__ == "__main__":
 	parser.add_argument("--phi", default=0.05)                      # Max perturbation hyper-parameter for BCQ
 	parser.add_argument("--train_behavioral", action="store_true")  # If true, train behavioral (DDPG)
 	parser.add_argument("--generate_buffer", action="store_true")   # If true, generate buffer
+	parser.add_argument("--state_vae", action="store_true")  # If true, generate buffer
 	args = parser.parse_args()
 
 	print("---------------------------------------")	
@@ -187,10 +214,15 @@ if __name__ == "__main__":
 	state_dim = env.observation_space.shape[0]
 	action_dim = env.action_space.shape[0] 
 	max_action = float(env.action_space.high[0])
+	max_state = float(env.observation_space.high[0])
+	if max_state == np.inf:
+		max_state = None
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 	if args.train_behavioral or args.generate_buffer:
 		interact_with_environment(env, state_dim, action_dim, max_action, device, args)
+	elif args.state_vae:
+		train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args)
 	else:
 		train_BCQ(state_dim, action_dim, max_action, device, args)
