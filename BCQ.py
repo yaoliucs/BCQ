@@ -321,9 +321,9 @@ class BCQ_state(object):
 				target_Q = target_Q.reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
 				if self.beta_c > 0:
 					recon, mean, std = self.vae2(next_state)
-					score = - ((recon - next_state)**2).mean(axis=1)
-					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(axis=1)
-					score = score.reshape(batch_size, -1).mean(axis=1, keepdim=True)
+					score = - ((recon - next_state)**2).mean(dim=1)
+					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
 					score = 1 + self.beta_c*score
 				else:
 					score = 1
@@ -346,9 +346,9 @@ class BCQ_state(object):
 				if self.beta_a > 0:
 					repeat_state = torch.repeat_interleave(state, 10, 0)
 					recon, mean, std = self.vae2(repeat_state)
-					score = - ((recon - repeat_state) ** 2).mean(axis=1)
-					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(axis=1)
-					score = score.reshape(batch_size, -1).mean(axis=1, keepdim=True)
+					score = - ((recon - repeat_state) ** 2).mean(dim=1)
+					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
 					score = 1 + self.beta_a * score
 				else:
 					score = 1
