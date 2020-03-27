@@ -188,6 +188,8 @@ if __name__ == "__main__":
 		print(f"Setting: Training behavioral, Env: {args.env}, Seed: {args.seed}")
 	elif args.generate_buffer:
 		print(f"Setting: Generating buffer, Env: {args.env}, Seed: {args.seed}")
+	elif args.state_vae:
+		print(f"Setting: Training BCQ with state vae, Env: {args.env}, Seed: {args.seed}")
 	else:
 		print(f"Setting: Training BCQ, Env: {args.env}, Seed: {args.seed}")
 	print("---------------------------------------")

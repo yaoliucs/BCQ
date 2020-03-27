@@ -235,7 +235,7 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
-				 beta_a = 0.1, beta_c=0.1):
+				 beta_a = 0.0, beta_c=0.1):
 		latent_dim = state_dim * 2
 
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
