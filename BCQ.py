@@ -235,7 +235,7 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
-				 beta_a = 0.0, beta_c=0.1):
+				 beta_a=0.0, beta_c=-2, sigmoid_k=100):
 		latent_dim = state_dim * 2
 
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
@@ -261,6 +261,7 @@ class BCQ_state(object):
 		self.device = device
 		self.beta_a = beta_a
 		self.beta_c = beta_c
+		self.sigmoid_k = sigmoid_k
 
 	def select_action(self, state):
 		with torch.no_grad():
@@ -319,12 +320,12 @@ class BCQ_state(object):
 																										target_Q2)
 				# Take max over each action sampled from the VAE
 				target_Q = target_Q.reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
-				if self.beta_c > 0:
+				if self.beta_c < 0:
 					recon, mean, std = self.vae2(next_state)
 					score = - ((recon - next_state)**2).mean(dim=1)
 					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
-					score = 1 + self.beta_c*score
+					score = F.sigmoid(self.sigmoid_k*(score - self.beta_c))
 				else:
 					score = 1
 
@@ -343,13 +344,13 @@ class BCQ_state(object):
 
 			# Update through DPG
 			with torch.no_grad():
-				if self.beta_a > 0:
+				if self.beta_a < 0:
 					repeat_state = torch.repeat_interleave(state, 10, 0)
 					recon, mean, std = self.vae2(repeat_state)
 					score = - ((recon - repeat_state) ** 2).mean(dim=1)
 					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
-					score = 1 + self.beta_a * score
+					score = F.sigmoid(self.sigmoid_k * (score - self.beta_a))
 				else:
 					score = 1
 			actor_loss = -(score*self.critic.q1(state, perturbed_actions)).mean()

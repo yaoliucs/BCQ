@@ -117,9 +117,12 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	# For saving files
 	setting = f"{args.env}_{args.seed}"
 	buffer_name = f"{args.buffer_name}_{setting}"
+	hp_setting = f"{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
 	# Initialize policy
-	policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device, args.discount, args.tau, args.lmbda, args.phi)
+	policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
+						   args.discount, args.tau, args.lmbda, args.phi,
+						   beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k)
 
 	# Load buffer
 	replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
@@ -134,7 +137,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 		pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
 		evaluations.append(eval_policy(policy, args.env, args.seed))
-		np.save(f"./results/BCQState_{setting}", evaluations)
+		np.save(f"./results/BCQState_{hp_setting}_{setting}", evaluations)
 
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")
@@ -180,7 +183,11 @@ if __name__ == "__main__":
 	parser.add_argument("--phi", default=0.05)                      # Max perturbation hyper-parameter for BCQ
 	parser.add_argument("--train_behavioral", action="store_true")  # If true, train behavioral (DDPG)
 	parser.add_argument("--generate_buffer", action="store_true")   # If true, generate buffer
-	parser.add_argument("--state_vae", action="store_true")  # If true, generate buffer
+	parser.add_argument("--state_vae", action="store_true")  		# If true, use an vae to fit state distribution
+	parser.add_argument("--score_activation", default="sigmoid")    # "sigmoid", "sigmoid_exp", "hard"
+	parser.add_argument("--beta_a", default=0, type=float)			# state filter hyperparameter (actor)
+	parser.add_argument("--beta_c", default=-2, type=float)			# state filter hyperparameter (critic)
+	parser.add_argument("--sigmoid_k", default=100, type=float)
 	args = parser.parse_args()
 
 	print("---------------------------------------")	
