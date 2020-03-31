@@ -236,8 +236,6 @@ class BCQ(object):
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
 				 beta_a=0.0, beta_c=-2, sigmoid_k=100):
-		latent_dim = state_dim * 2
-
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
 		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=1e-3)
@@ -246,10 +244,10 @@ class BCQ_state(object):
 		self.critic_target = copy.deepcopy(self.critic)
 		self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=1e-3)
 
-		self.vae = VAE(state_dim, action_dim, latent_dim, max_action, device).to(device)
+		self.vae = VAE(state_dim, action_dim, action_dim*2, max_action, device).to(device)
 		self.vae_optimizer = torch.optim.Adam(self.vae.parameters())
 
-		self.vae2 = VAE_state(state_dim, latent_dim, max_state, device).to(device)
+		self.vae2 = VAE_state(state_dim, state_dim*2, max_state, device).to(device)
 		self.vae2_optimizer = torch.optim.Adam(self.vae2.parameters())
 
 		self.max_state = max_state

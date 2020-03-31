@@ -185,8 +185,8 @@ if __name__ == "__main__":
 	parser.add_argument("--generate_buffer", action="store_true")   # If true, generate buffer
 	parser.add_argument("--state_vae", action="store_true")  		# If true, use an vae to fit state distribution
 	parser.add_argument("--score_activation", default="sigmoid")    # "sigmoid", "sigmoid_exp", "hard"
-	parser.add_argument("--beta_a", default=0, type=float)			# state filter hyperparameter (actor)
-	parser.add_argument("--beta_c", default=-2, type=float)			# state filter hyperparameter (critic)
+	parser.add_argument("--beta_a", default=0.0, type=float)		# state filter hyperparameter (actor)
+	parser.add_argument("--beta_c", default=-2.0, type=float)		# state filter hyperparameter (critic)
 	parser.add_argument("--sigmoid_k", default=100, type=float)
 	args = parser.parse_args()
 
