@@ -129,15 +129,18 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	replay_buffer.load(f"./buffers/{buffer_name}")
 
 	evaluations = []
+	filter_scores = []
 	episode_num = 0
 	done = True
 	training_iters = 0
 
 	while training_iters < args.max_timesteps:
-		pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-
+		score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 		evaluations.append(eval_policy(policy, args.env, args.seed))
 		np.save(f"./results/BCQState_{hp_setting}_{setting}", evaluations)
+
+		filter_scores = np.append(filter_scores, score)
+		np.save(f"./results/BCQState_{hp_setting}_{setting}_filter", filter_scores)
 
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")

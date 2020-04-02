@@ -271,6 +271,8 @@ class BCQ_state(object):
 
 	def train(self, replay_buffer, iterations, batch_size=100):
 
+		mean_scores = []
+
 		for it in range(iterations):
 			# Sample replay buffer / batch
 			state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
@@ -324,6 +326,7 @@ class BCQ_state(object):
 					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
 					score = F.sigmoid(self.sigmoid_k*(score - self.beta_c))
+					mean_scores.append(score.mean().item())
 				else:
 					score = 1
 
@@ -363,3 +366,5 @@ class BCQ_state(object):
 
 			for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 				target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
+		return mean_scores
