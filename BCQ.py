@@ -269,6 +269,34 @@ class BCQ_state(object):
 			ind = q1.argmax(0)
 		return action[ind].cpu().data.numpy().flatten()
 
+	def train_vae(self, replay_buffer, iterations, batch_size=100):
+		scores = []
+
+		for it in range(iterations):
+			# Sample replay buffer / batch
+			state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
+
+			recon, mean, std = self.vae2(state)
+			recon_loss = F.mse_loss(recon, state)
+			KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+			vae_loss = recon_loss + 0.5 * KL_loss
+			scores.append(vae_loss.item())
+
+			self.vae2_optimizer.zero_grad()
+			vae_loss.backward()
+			self.vae2_optimizer.step()
+
+			recon, mean, std = self.vae2(next_state)
+			recon_loss = F.mse_loss(recon, next_state)
+			KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+			vae_loss = recon_loss + 0.5 * KL_loss
+			scores.append(vae_loss.item())
+
+			self.vae2_optimizer.zero_grad()
+			vae_loss.backward()
+			self.vae2_optimizer.step()
+		return np.mean(scores)
+
 	def train(self, replay_buffer, iterations, batch_size=100):
 
 		mean_scores = []
@@ -288,14 +316,14 @@ class BCQ_state(object):
 			self.vae_optimizer.step()
 
 			# VAE2 Training
-			recon, mean, std = self.vae2(state)
-			recon_loss = F.mse_loss(recon, state)
-			KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
-			vae_loss = recon_loss + 0.5 * KL_loss
-
-			self.vae2_optimizer.zero_grad()
-			vae_loss.backward()
-			self.vae2_optimizer.step()
+			# recon, mean, std = self.vae2(state)
+			# recon_loss = F.mse_loss(recon, state)
+			# KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+			# vae_loss = recon_loss + 0.5 * KL_loss
+            #
+			# self.vae2_optimizer.zero_grad()
+			# vae_loss.backward()
+			# self.vae2_optimizer.step()
 
 			# recon, mean, std = self.vae2(next_state)
 			# recon_loss = F.mse_loss(recon, next_state)
@@ -366,5 +394,8 @@ class BCQ_state(object):
 
 			for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 				target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
+		print(score)
+		print(np.mean(mean_scores))
 
 		return mean_scores

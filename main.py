@@ -134,13 +134,18 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	done = True
 	training_iters = 0
 
+	while training_iters < args.max_timesteps/5:
+		vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
+		print(f"Training iterations: {training_iters}")
+		print("VAE loss",vae_loss)
+
 	while training_iters < args.max_timesteps:
 		score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 		evaluations.append(eval_policy(policy, args.env, args.seed))
-		np.save(f"./results/only_cs/BCQState_{hp_setting}_{setting}", evaluations)
+		np.save(f"./results/vae_pretrain/BCQState_{hp_setting}_{setting}", evaluations)
 
 		filter_scores = np.append(filter_scores, score)
-		np.save(f"./results/only_cs/BCQState_{hp_setting}_{setting}_filter", filter_scores)
+		np.save(f"./results/vae_pretrain/BCQState_{hp_setting}_{setting}_filter", filter_scores)
 
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")
