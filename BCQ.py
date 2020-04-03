@@ -140,6 +140,12 @@ class VAE_state(nn.Module):
 		else:
 			return self.max_state * torch.tanh(self.d3(s))
 
+	def save(self, filename):
+		torch.save(self.state_dict(), filename)
+
+	def load(self, filename):
+		self.load_state_dict(torch.load(filename))
+
 
 class BCQ(object):
 	def __init__(self, state_dim, action_dim, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05):
@@ -296,6 +302,14 @@ class BCQ_state(object):
 			vae_loss.backward()
 			self.vae2_optimizer.step()
 		return np.mean(scores)
+
+	def test_vae(self, replay_buffer, batch_size=1000):
+		state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
+		recon, mean, std = self.vae2(next_state)
+		recon_loss = F.mse_loss(recon, next_state)
+		KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+		vae_loss = recon_loss + 0.5 * KL_loss
+		return vae_loss.cpu().numpy()
 
 	def train(self, replay_buffer, iterations, batch_size=100):
 
