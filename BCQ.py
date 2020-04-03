@@ -306,8 +306,8 @@ class BCQ_state(object):
 	def test_vae(self, replay_buffer, batch_size=1000):
 		state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
 		recon, mean, std = self.vae2(next_state)
-		recon_loss = F.mse_loss(recon, next_state)
-		KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+		recon_loss = ((recon - next_state)**2).mean(dim=1)
+		KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 		vae_loss = recon_loss + 0.5 * KL_loss
 		return vae_loss.detach().cpu().numpy()
 
