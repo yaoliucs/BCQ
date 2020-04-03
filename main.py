@@ -140,6 +140,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 		print("VAE loss",vae_loss)
 		training_iters += args.eval_freq
 
+	training_iters = 0
 	while training_iters < args.max_timesteps:
 		score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 		evaluations.append(eval_policy(policy, args.env, args.seed))
