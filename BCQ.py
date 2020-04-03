@@ -365,7 +365,7 @@ class BCQ_state(object):
 				if self.beta_c < 0:
 					recon, mean, std = self.vae2(next_state)
 					score = - ((recon - next_state)**2).mean(dim=1)
-					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+					score += 0.5 * 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
 					score = torch.sigmoid(self.sigmoid_k*(score - self.beta_c))
 					mean_scores.append(score.mean().item())
@@ -391,7 +391,7 @@ class BCQ_state(object):
 					repeat_state = torch.repeat_interleave(state, 10, 0)
 					recon, mean, std = self.vae2(repeat_state)
 					a_score = - ((recon - repeat_state) ** 2).mean(dim=1)
-					a_score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+					a_score += 0.5 * 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 					a_score = a_score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
 					a_score = torch.sigmoid(self.sigmoid_k * (a_score - self.beta_a))
 				else:
