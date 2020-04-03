@@ -176,7 +176,7 @@ def test_vae_state(state_dim, action_dim, max_state, max_action, device, args):
 	policy.vae2.save(f"./models/vae_{setting}")
 	test_loss = policy.test_vae(replay_buffer, batch_size=100000)
 	print(test_loss)
-	np.save(f"./results/vae_pretrain/elbo", test_loss)
+	np.save(f"./results/vae_pretrain/elbo_{args.seed}", test_loss)
 
 
 # Runs policy for X episodes and returns average reward
