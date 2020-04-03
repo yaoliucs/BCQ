@@ -353,7 +353,7 @@ class BCQ_state(object):
 					score = - ((recon - next_state)**2).mean(dim=1)
 					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
-					score = F.sigmoid(self.sigmoid_k*(score - self.beta_c))
+					score = torch.sigmoid(self.sigmoid_k*(score - self.beta_c))
 					mean_scores.append(score.mean().item())
 				else:
 					score = 1
@@ -376,13 +376,13 @@ class BCQ_state(object):
 				if self.beta_a < 0:
 					repeat_state = torch.repeat_interleave(state, 10, 0)
 					recon, mean, std = self.vae2(repeat_state)
-					score = - ((recon - repeat_state) ** 2).mean(dim=1)
-					score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
-					score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
-					score = F.sigmoid(self.sigmoid_k * (score - self.beta_a))
+					a_score = - ((recon - repeat_state) ** 2).mean(dim=1)
+					a_score += 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+					a_score = a_score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
+					a_score = torch.sigmoid(self.sigmoid_k * (a_score - self.beta_a))
 				else:
-					score = 1
-			actor_loss = -(score*self.critic.q1(state, perturbed_actions)).mean()
+					a_score = 1
+			actor_loss = -(a_score*self.critic.q1(state, perturbed_actions)).mean()
 
 			self.actor_optimizer.zero_grad()
 			actor_loss.backward()
