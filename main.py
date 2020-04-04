@@ -78,11 +78,14 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
 	# Save final policy
 	if args.train_behavioral:
 		policy.save(f"./models/behavioral_{setting}")
+		replay_buffer.save(f"./buffers/{buffer_name}")
 
 	# Save final buffer and performance
 	else:
 		evaluations.append(eval_policy(policy, args.env, args.seed))
-		np.save(f"./results/buffer_performance_{setting}", evaluations)
+		np.save(f"./results/buffer_policy_performance_{setting}", evaluations)
+		avg_reward = (replay_buffer.reward.sum())/(1.-replay_buffer.not_done).sum()
+		np.save(f"./results/buffer_average_performance_{setting}", avg_reward)
 		replay_buffer.save(f"./buffers/{buffer_name}")
 
 
@@ -144,10 +147,10 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	while training_iters < args.max_timesteps:
 		score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 		evaluations.append(eval_policy(policy, args.env, args.seed))
-		np.save(f"./results/vae_pretrain/BCQState_{hp_setting}_{setting}", evaluations)
+		np.save(f"./results/BCQState_{hp_setting}_{setting}", evaluations)
 
 		filter_scores = np.append(filter_scores, score)
-		np.save(f"./results/vae_pretrain/BCQState_{hp_setting}_{setting}_filter", filter_scores)
+		np.save(f"./results/BCQState_{hp_setting}_{setting}_filter", filter_scores)
 
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")
@@ -207,7 +210,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--env", default="Hopper-v3")               # OpenAI gym environment name
 	parser.add_argument("--seed", default=0, type=int)              # Sets Gym, PyTorch and Numpy seeds
-	parser.add_argument("--buffer_name", default="Robust")          # Prepends name to filename
+	parser.add_argument("--buffer_name", default="Imperfect")       # Prepends name to filename "Final/Imitation/Imperfect"
 	parser.add_argument("--eval_freq", default=5e3, type=float)     # How often (time steps) we evaluate
 	parser.add_argument("--max_timesteps", default=1e6, type=int)   # Max time steps to run environment or train for (this defines buffer size)
 	parser.add_argument("--start_timesteps", default=25e3, type=int)# Time steps initial random policy is used before training behavioral
