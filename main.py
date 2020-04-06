@@ -12,7 +12,7 @@ import utils
 # Handles interactions with the environment, i.e. train behavioral or generate buffer
 def interact_with_environment(env, state_dim, action_dim, max_action, device, args):
 	# For saving files
-	setting = f"Std{args.gaussian_std}_{args.env}_{args.seed}"
+	setting = f"{args.env}_{args.seed}"
 	buffer_name = f"{args.buffer_name}_{setting}"
 
 	# Initialize and load policy
