@@ -79,13 +79,15 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
 	if args.train_behavioral:
 		policy.save(f"./models/behavioral_{setting}")
 		replay_buffer.save(f"./buffers/{buffer_name}")
+		avg_reward = (replay_buffer.reward.sum()) / (1. - replay_buffer.not_done).sum()
+		np.save(f"./results/buffer_noisy_performance_{setting}", avg_reward)
 
 	# Save final buffer and performance
 	else:
 		evaluations.append(eval_policy(policy, args.env, args.seed))
-		np.save(f"./results/buffer_policy_performance_{setting}", evaluations)
+		np.save(f"./results/buffer_nonoise_performance_{setting}", evaluations)
 		avg_reward = (replay_buffer.reward.sum())/(1.-replay_buffer.not_done).sum()
-		np.save(f"./results/buffer_average_performance_{setting}", avg_reward)
+		np.save(f"./results/buffer_noisy_performance_{setting}", avg_reward)
 		replay_buffer.save(f"./buffers/{buffer_name}")
 
 
