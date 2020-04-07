@@ -77,11 +77,10 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
             episode_num += 1
 
     # Save final buffer and performance
-    else:
-        evaluations.append(eval_policy(policy, args.env, args.seed, 100))
-        np.save(f"./results/buffer_policy_performance_{buffer_name}", evaluations)
-        np.save(f"./results/buffer_average_performance_{buffer_name}", np.mean(episode_values))
-        replay_buffer.save(f"./buffers/{buffer_name}")
+    evaluations.append(eval_policy(policy, args.env, args.seed, 100))
+    np.save(f"./results/buffer_policy_performance_{buffer_name}", evaluations)
+    np.save(f"./results/buffer_average_performance_{buffer_name}", np.mean(episode_values))
+    replay_buffer.save(f"./buffers/{buffer_name}")
 
 
 def check_state_filter(state_dim, action_dim, max_state, max_action, device, args):
