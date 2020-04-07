@@ -134,7 +134,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 
 	# Load buffer
 	replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
-	replay_buffer.load(f"./buffers/{buffer_name}")
+	replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size)
 
 	evaluations = []
 	filter_scores = []
