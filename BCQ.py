@@ -309,7 +309,7 @@ class BCQ_state(object):
 		recon_loss = ((recon - next_state)**2).mean(dim=1)
 		KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
 		vae_loss = recon_loss + 0.5 * KL_loss
-		return vae_loss.detach().cpu().numpy()
+		return -vae_loss.detach().cpu().numpy()
 
 	def train(self, replay_buffer, iterations, batch_size=100):
 
