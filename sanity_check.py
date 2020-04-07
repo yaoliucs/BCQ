@@ -129,6 +129,8 @@ def check_state_filter(state_dim, action_dim, max_state, max_action, device, arg
         np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_score", score)
         np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_value", value)
         np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_critic", critic)
+        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_qpos", qpos.cpu().numpy())
+        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_qvel", qvel.cpu().numpy())
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
