@@ -87,13 +87,13 @@ def check_state_filter(state_dim, action_dim, max_state, max_action, device, arg
     # For saving files
     setting = f"{args.env}_{args.seed}"
     buffer_name = f"{args.buffer_name}_{setting}"
-    hp_setting = f"N{args.load_buffer_size}"
+    hp_setting = f"N{args.load_buffer_size}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
     # Initialize policy
     env = gym.make(args.env)
     policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
                            args.discount, args.tau, args.lmbda, args.phi,
-                           beta_a=0, beta_c=0, sigmoid_k=1)
+                           beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k)
 
     # Load buffer
     replay_buffer = ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0], env.init_qvel.shape[0], device)
@@ -208,6 +208,10 @@ if __name__ == "__main__":
     parser.add_argument("--generate_buffer", action="store_true")  # If true, generate buffer
     parser.add_argument("--state_vae", action="store_true")  # If true, use an vae to fit state distribution
     parser.add_argument("--test_state_vae", action="store_true")  # If true, only test vae
+    parser.add_argument("--score_activation", default="sigmoid")  # "sigmoid", "sigmoid_exp", "hard"
+    parser.add_argument("--beta_a", default=0.0, type=float)  # state filter hyperparameter (actor)
+    parser.add_argument("--beta_c", default=-2.0, type=float)  # state filter hyperparameter (critic)
+    parser.add_argument("--sigmoid_k", default=100, type=float)
     parser.add_argument("--load_buffer_size", default=1e6, type=int)  # number of samples to load into the buffer
     args = parser.parse_args()
 
