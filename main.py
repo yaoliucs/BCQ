@@ -6,6 +6,7 @@ import torch
 
 import BCQ
 import DDPG
+import BEAR
 import utils
 
 
@@ -92,6 +93,91 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
 										   args.rand_action_p, args.gaussian_std, action_dim, max_action)
 		np.save(f"./results/buffer_average_performance_{buffer_name}", [noisy_evaluation,np.mean(episode_values)])
 		replay_buffer.save(f"./buffers/{buffer_name}")
+
+# Train BEAR QL
+def train_BEAR(state_dim, action_dim, max_action, device, args):
+	print("Training BEAR\n")
+	setting = f"{args.env}_{args.seed}"
+	buffer_name = f"{args.buffer_name}_{setting}"
+
+	# Initialize policy
+	policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
+					   version=args.version,
+					   lambda_=0.5,
+					   threshold=0.05,
+					   mode=args.mode,
+					   num_samples_match=args.num_samples_match,
+					   mmd_sigma=args.mmd_sigma,
+					   lagrange_thresh=args.lagrange_thresh,
+					   use_kl=(True if args.distance_type == "KL" else False),
+					   use_ensemble=(False if args.use_ensemble_variance == "False" else True),
+					   kernel_type=args.kernel_type)
+
+	# Load buffer
+	replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
+	replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
+
+	evaluations = []
+	episode_num = 0
+	done = True
+	training_iters = 0
+
+	while training_iters < args.max_timesteps:
+		pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
+
+		evaluations.append(eval_policy(policy, args.env, args.seed))
+		np.save(f"./results/BEAR_N{args.load_buffer_size}_{buffer_name}", evaluations)
+
+		training_iters += args.eval_freq
+		print(f"Training iterations: {training_iters}")
+
+def train_BEAR_state(state_dim, action_dim, max_action, device, args):
+	print("Training BEARState\n")
+	setting = f"{args.env}_{args.seed}"
+	buffer_name = f"{args.buffer_name}_{setting}"
+	hp_setting = f"N{args.load_buffer_size}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+
+	# Initialize policy
+	policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
+					   version=args.version,
+					   lambda_=0.5,
+					   threshold=0.05,
+					   mode=args.mode,
+					   num_samples_match=args.num_samples_match,
+					   mmd_sigma=args.mmd_sigma,
+					   lagrange_thresh=args.lagrange_thresh,
+					   use_kl=(True if args.distance_type == "KL" else False),
+					   use_ensemble=(False if args.use_ensemble_variance == "False" else True),
+					   kernel_type=args.kernel_type,
+					   use_state_vae=args.state_vae,
+					   beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k
+					   )
+
+	# Load buffer
+	replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
+	replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
+
+	evaluations = []
+	episode_num = 0
+	done = True
+	training_iters = 0
+
+	while training_iters < int(args.max_timesteps/5):
+		vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
+		print(f"Training iterations: {training_iters}")
+		print("VAE loss",vae_loss)
+		training_iters += args.eval_freq
+
+	training_iters = 0
+
+	while training_iters < args.max_timesteps:
+		pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
+
+		evaluations.append(eval_policy(policy, args.env, args.seed))
+		np.save(f"./results/BEARState_{hp_setting}_{buffer_name}", evaluations)
+
+		training_iters += args.eval_freq
+		print(f"Training iterations: {training_iters}")
 
 
 # Trains BCQ offline
@@ -261,6 +347,21 @@ if __name__ == "__main__":
 	parser.add_argument("--beta_c", default=-2.0, type=float)		# state filter hyperparameter (critic)
 	parser.add_argument("--sigmoid_k", default=100, type=float)
 	parser.add_argument("--load_buffer_size", default=1e6, type=int) # number of samples to load into the buffer
+	# BEAR parameter
+	parser.add_argument("--bear", action="store_true")  # If true, use an vae to fit state distribution
+	parser.add_argument("--version", default='0',
+						type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
+	parser.add_argument('--mode', default='hardcoded',
+						type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
+	parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
+	parser.add_argument('--mmd_sigma', default=10.0, type=float)  # The bandwidth of the MMD kernel parameter
+	parser.add_argument('--kernel_type', default='laplacian',
+						type=str)  # kernel type for MMD ("laplacian" or "gaussian")
+	parser.add_argument('--lagrange_thresh', default=10.0,
+						type=float)  # What is the threshold for the lagrange multiplier
+	parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
+	parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
+
 	args = parser.parse_args()
 
 	print("---------------------------------------")	
@@ -268,6 +369,11 @@ if __name__ == "__main__":
 		print(f"Setting: Training behavioral, Env: {args.env}, Seed: {args.seed}")
 	elif args.generate_buffer:
 		print(f"Setting: Generating buffer, Env: {args.env}, Seed: {args.seed}")
+	elif args.bear:
+		if args.state_vae:
+			print(f"Setting: Training BEAR with state vae, Env: {args.env}, Seed: {args.seed}")
+		else:
+			print(f"Setting: Training BEAR, Env: {args.env}, Seed: {args.seed}")
 	elif args.state_vae:
 		print(f"Setting: Training BCQ with state vae, Env: {args.env}, Seed: {args.seed}")
 	else:
@@ -306,6 +412,11 @@ if __name__ == "__main__":
 		interact_with_environment(env, state_dim, action_dim, max_action, device, args)
 	elif args.test_state_vae:
 		test_vae_state(state_dim, action_dim, max_state, max_action, device, args)
+	elif args.bear:
+		if args.state_vae:
+			train_BEAR_state(state_dim, action_dim, max_action, device, args)
+		else:
+			train_BEAR(state_dim, action_dim, max_action, device, args)
 	elif args.state_vae:
 		train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args)
 	else:

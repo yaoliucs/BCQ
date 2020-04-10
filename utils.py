@@ -28,8 +28,18 @@ class ReplayBuffer(object):
 		self.size = min(self.size + 1, self.max_size)
 
 
-	def sample(self, batch_size):
+	def sample(self, batch_size, use_bootstrap=False):
 		ind = np.random.randint(0, self.size, size=batch_size)
+
+		if use_bootstrap:
+			return (
+			torch.FloatTensor(self.state[ind]).to(self.device),
+			torch.FloatTensor(self.action[ind]).to(self.device),
+			torch.FloatTensor(self.next_state[ind]).to(self.device),
+			torch.FloatTensor(self.reward[ind]).to(self.device),
+			torch.FloatTensor(self.not_done[ind]).to(self.device),
+			torch.FloatTensor(self.bootstrap_mask[ind]).to(self.device),
+		)
 
 		return (
 			torch.FloatTensor(self.state[ind]).to(self.device),
@@ -49,7 +59,7 @@ class ReplayBuffer(object):
 		np.save(f"{save_folder}_ptr.npy", self.ptr)
 
 
-	def load(self, save_folder, size=-1):
+	def load(self, save_folder, size=-1, bootstrap_dim=None):
 		reward_buffer = np.load(f"{save_folder}_reward.npy")
 		
 		# Adjust crt_size if we're using a custom size
@@ -61,6 +71,11 @@ class ReplayBuffer(object):
 		self.next_state[:self.size] = np.load(f"{save_folder}_next_state.npy")[:self.size]
 		self.reward[:self.size] = reward_buffer[:self.size]
 		self.not_done[:self.size] = np.load(f"{save_folder}_not_done.npy")[:self.size]
+		if bootstrap_dim is not None:
+			self.bootstrap_dim = bootstrap_dim
+			bootstrap_mask = np.random.binomial(n=1, size=(1, self.size, bootstrap_dim,), p=0.8)
+			bootstrap_mask = np.squeeze(bootstrap_mask, axis=0)
+			self.bootstrap_mask = bootstrap_mask[:self.size]
 
 
 class ExtendedReplayBuffer(object):
@@ -125,7 +140,7 @@ class ExtendedReplayBuffer(object):
 		np.save(f"{save_folder}_qvel.npy", self.qvel[:self.size])
 		np.save(f"{save_folder}_ptr.npy", self.ptr)
 
-	def load(self, save_folder, size=-1):
+	def load(self, save_folder, size=-1, bootstrap_dim=None):
 		reward_buffer = np.load(f"{save_folder}_reward.npy")
 
 		# Adjust crt_size if we're using a custom size
@@ -139,3 +154,9 @@ class ExtendedReplayBuffer(object):
 		self.not_done[:self.size] = np.load(f"{save_folder}_not_done.npy")[:self.size]
 		self.qpos[:self.size] = np.load(f"{save_folder}_qpos.npy")[:self.size]
 		self.qvel[:self.size] = np.load(f"{save_folder}_qvel.npy")[:self.size]
+
+		if bootstrap_dim is not None:
+			self.bootstrap_dim = bootstrap_dim
+			bootstrap_mask = np.random.binomial(n=1, size=(1, self.size, bootstrap_dim,), p=0.8)
+			bootstrap_mask = np.squeeze(bootstrap_mask, axis=0)
+			self.bootstrap_mask = bootstrap_mask[:self.size]
