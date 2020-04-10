@@ -445,7 +445,7 @@ class BEAR(object):
 
                 if self.use_state_vae and self.beta_c < 0:
                     recon, mean, std = self.vae2(state_rep)
-                    score = - ((recon - next_state) ** 2).mean(dim=1)
+                    score = - ((recon - state_rep) ** 2).mean(dim=1)
                     score += 0.5 * 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
                     score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
                     score = torch.sigmoid(self.sigmoid_k * (score - self.beta_c))
