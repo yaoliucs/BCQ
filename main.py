@@ -203,7 +203,7 @@ def train_BCQ(state_dim, action_dim, max_action, device, args):
 		pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
 		evaluations.append(eval_policy(policy, args.env, args.seed))
-		np.save(f"./results/BCQ_N{args.load_buffer_size}_{buffer_name}", evaluations)
+		np.save(f"./results/BCQ_N{args.load_buffer_size}_phi{args.phi}_{buffer_name}", evaluations)
 
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")
@@ -212,7 +212,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	# For saving files
 	setting = f"{args.env}_{args.seed}"
 	buffer_name = f"{args.buffer_name}_{setting}"
-	hp_setting = f"N{args.load_buffer_size}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+	hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
 	# Initialize policy
 	policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
