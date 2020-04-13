@@ -331,7 +331,7 @@ if __name__ == "__main__":
 	parser.add_argument("--seed", default=0, type=int)              # Sets Gym, PyTorch and Numpy seeds
 	parser.add_argument("--buffer_name", default="Imperfect")       # Prepends name to filename "Final/Imitation/Imperfect"
 	parser.add_argument("--eval_freq", default=5e3, type=float)     # How often (time steps) we evaluate
-	parser.add_argument("--max_timesteps", default=1e6, type=int)   # Max time steps to run environment or train for (this defines buffer size)
+	parser.add_argument("--max_timesteps", default=100000, type=int)   # Max time steps to run environment or train for (this defines buffer size)
 	parser.add_argument("--start_timesteps", default=25e3, type=int)# Time steps initial random policy is used before training behavioral
 	parser.add_argument("--rand_action_p", default=0.3, type=float) # Probability of selecting random action during batch generation
 	parser.add_argument("--gaussian_std", default=0.3, type=float)  # Std of Gaussian exploration noise (Set to 0.1 if DDPG trains poorly)
