@@ -339,7 +339,7 @@ if __name__ == "__main__":
 	parser.add_argument("--discount", default=0.99)                 # Discount factor
 	parser.add_argument("--tau", default=0.005)                     # Target network update rate
 	parser.add_argument("--lmbda", default=0.75)                    # Weighting for clipped double Q-learning in BCQ
-	parser.add_argument("--phi", default=0.05)                      # Max perturbation hyper-parameter for BCQ
+	parser.add_argument("--phi", default=0.05, type=float)          # Max perturbation hyper-parameter for BCQ
 	parser.add_argument("--train_behavioral", action="store_true")  # If true, train behavioral (DDPG)
 	parser.add_argument("--generate_buffer", action="store_true")   # If true, generate buffer
 	parser.add_argument("--state_vae", action="store_true")  		# If true, use an vae to fit state distribution
