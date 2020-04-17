@@ -155,7 +155,7 @@ def evaluate_filter_and_critic(policy, state, qpos, qvel, args):
         repeated_state = torch.repeat_interleave(state, 100, 0)
         sampled_actions = policy.vae.decode(repeated_state)
         perturbed_actions = policy.actor(repeated_state, sampled_actions)
-        critic_values = policy.critic.q1(state, perturbed_actions).reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
+        critic_values = policy.critic.q1(repeated_state, perturbed_actions).reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
         critic_values = critic_values.cpu().numpy().flatten()
 
     return (score, evaluates, critic_values)
