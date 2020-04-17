@@ -10,8 +10,6 @@ import DDPG
 import BEAR
 import utils
 
-from sanity_check import evaluate_filter_and_critic
-
 # Handles interactions with the environment, i.e. train behavioral or generate buffer
 def interact_with_environment(env, state_dim, action_dim, max_action, device, args):
 	# For saving files
@@ -339,6 +337,54 @@ def eval_noisy_policy(policy, env_name, seed, rand_action_p, gaussian_std,
 	print("---------------------------------------")
 	return avg_reward
 
+def evaluate_filter_and_critic(policy, state, qpos, qvel, args):
+    # Compute score
+    recon, mean, std = policy.vae2(state)
+    recon_loss = ((recon - state) ** 2).mean(dim=1)
+    KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+    vae_loss = recon_loss + 0.5 * KL_loss
+    score = -vae_loss.detach().cpu().numpy().flatten()
+
+    # Evaluate
+    evaluates = evaluate_from_sa(policy, args.env, args.seed, qpos, qvel, args.discount)
+
+    # Compute critic
+    batch_size = state.shape[0]
+    with torch.no_grad():
+        repeated_state = torch.repeat_interleave(state, 100, 0)
+        sampled_actions = policy.vae.decode(repeated_state)
+        perturbed_actions = policy.actor(repeated_state, sampled_actions)
+        critic_values = policy.critic.q1(state, perturbed_actions).reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
+        critic_values = critic_values.cpu().numpy().flatten()
+
+    return (score, evaluates, critic_values)
+
+def evaluate_from_sa(policy, env_name, seed, qpos_tensor, qvel_tensor, gamma, num_trajectory=1):
+    env = gym.make(env_name)
+    env.seed(seed + 100)
+
+    n = qpos_tensor.shape[0]
+    policy_values = []
+    for i in range(n):
+        episode_values = []
+        qpos = qpos_tensor.cpu().numpy()[i, :]
+        qvel = qvel_tensor.cpu().numpy()[i, :]
+        for k in range(num_trajectory):
+            episode_reward = 0
+            env.reset()
+            env.set_state(qpos, qvel)
+            state = env.env._get_obs()
+            gamma_n = 1
+            for t in range(int(args.max_timesteps)):
+                action = policy.select_action(np.array(state))
+                state, reward, done, _ = env.step(action)
+                episode_reward += gamma_n*reward
+                gamma_n *= gamma
+                if done:
+                    break
+            episode_values.append(episode_reward)
+        policy_values.append(np.mean(episode_values))
+    return np.array(policy_values)
 
 if __name__ == "__main__":
 	
