@@ -87,7 +87,7 @@ def check_state_filter(state_dim, action_dim, max_state, max_action, device, arg
     # For saving files
     setting = f"{args.env}_{args.seed}"
     buffer_name = f"{args.buffer_name}_{setting}"
-    hp_setting = f"N{args.load_buffer_size}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+    hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
     # Initialize policy
     env = gym.make(args.env)
@@ -104,6 +104,8 @@ def check_state_filter(state_dim, action_dim, max_state, max_action, device, arg
     episode_num = 0
     done = True
     training_iters = 0
+
+    os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
 
     # state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
     # score, value, critic = evaluate_filter_and_critic(policy, state, qpos, qvel, args)
@@ -124,16 +126,17 @@ def check_state_filter(state_dim, action_dim, max_state, max_action, device, arg
         filter_scores = np.append(filter_scores, score)
         np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_filter", filter_scores)
 
-        state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
-        score, value, critic = evaluate_filter_and_critic(policy, state, qpos, qvel, args)
-        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_score", score)
-        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_value", value)
-        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_critic", critic)
-        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_qpos", qpos.cpu().numpy())
-        np.save(f"./results/SCheck_{hp_setting}_{buffer_name}_{training_iters}_qvel", qvel.cpu().numpy())
-
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
+
+        if training_iters % int(args.max_timesteps/10) == 0:
+            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
+            score, value, critic = evaluate_filter_and_critic(policy, next_state, qpos, qvel, args)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_value", value)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_critic", critic)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qpos", qpos.cpu().numpy())
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qvel", qvel.cpu().numpy())
 
 def evaluate_filter_and_critic(policy, state, qpos, qvel, args):
     # Compute score
@@ -147,10 +150,13 @@ def evaluate_filter_and_critic(policy, state, qpos, qvel, args):
     evaluates = evaluate_from_sa(policy, args.env, args.seed, qpos, qvel, args.discount)
 
     # Compute critic
+    batch_size = state.shape[0]
     with torch.no_grad():
-        sampled_actions = policy.vae.decode(state)
-        perturbed_actions = policy.actor(state, sampled_actions)
-        critic_values = policy.critic.q1(state, perturbed_actions).cpu().numpy().flatten()
+        repeated_state = torch.repeat_interleave(state, 100, 0)
+        sampled_actions = policy.vae.decode(repeated_state)
+        perturbed_actions = policy.actor(repeated_state, sampled_actions)
+        critic_values = policy.critic.q1(state, perturbed_actions).reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
+        critic_values = critic_values.cpu().numpy().flatten()
 
     return (score, evaluates, critic_values)
 
@@ -212,7 +218,7 @@ if __name__ == "__main__":
     parser.add_argument("--beta_a", default=0.0, type=float)  # state filter hyperparameter (actor)
     parser.add_argument("--beta_c", default=-2.0, type=float)  # state filter hyperparameter (critic)
     parser.add_argument("--sigmoid_k", default=100, type=float)
-    parser.add_argument("--load_buffer_size", default=1e6, type=int)  # number of samples to load into the buffer
+    parser.add_argument("--load_buffer_size", default=100000, type=int)  # number of samples to load into the buffer
     args = parser.parse_args()
 
     print("---------------------------------------")

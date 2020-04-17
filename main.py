@@ -10,6 +10,7 @@ import DDPG
 import BEAR
 import utils
 
+from sanity_check import evaluate_filter_and_critic
 
 # Handles interactions with the environment, i.e. train behavioral or generate buffer
 def interact_with_environment(env, state_dim, action_dim, max_action, device, args):
@@ -229,6 +230,12 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	done = True
 	training_iters = 0
 
+	if args.test_critic_elbo:
+		os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
+		replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
+												   env.init_qvel.shape[0], device)
+		replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}")
+
 	while training_iters < int(args.max_timesteps/5):
 		vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 		print(f"Training iterations: {training_iters}")
@@ -246,6 +253,15 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 
 		training_iters += args.eval_freq
 		print(f"Training iterations: {training_iters}")
+
+		if args.test_critic_elbo and (training_iters % int(args.max_timesteps/10) == 0):
+			state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(1000)
+			score, value, critic = evaluate_filter_and_critic(policy, next_state, qpos, qvel, args)
+			np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
+			np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_value", value)
+			np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_critic", critic)
+			np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qpos", qpos.cpu().numpy())
+			np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qvel", qvel.cpu().numpy())
 
 def test_vae_state(state_dim, action_dim, max_state, max_action, device, args):
 	# For saving files
@@ -363,6 +379,7 @@ if __name__ == "__main__":
 						type=float)  # What is the threshold for the lagrange multiplier
 	parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
 	parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
+	parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
 
 	args = parser.parse_args()
 
