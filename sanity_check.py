@@ -105,7 +105,8 @@ def check_state_filter(state_dim, action_dim, max_state, max_action, device, arg
     done = True
     training_iters = 0
 
-    os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
+    if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
+        os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
 
     # state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
     # score, value, critic = evaluate_filter_and_critic(policy, state, qpos, qvel, args)

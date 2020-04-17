@@ -229,7 +229,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 	training_iters = 0
 
 	if args.test_critic_elbo:
-		os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
+		if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
+			os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
 		replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
 												   env.init_qvel.shape[0], device)
 		replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}")
