@@ -383,7 +383,7 @@ def evaluate_filter_and_critic(policy, state, action, qpos, qvel, args):
     return (score, evaluates, bsl_evaluates, critic_values, bsl_critic_values)
 
 
-def evaluate_from_sa(policy, env_name, seed, qpos_tensor, qvel_tensor, gamma, action=None, num_trajectory=1):
+def evaluate_from_sa(policy, env_name, seed, qpos_tensor, qvel_tensor, gamma, action_tensor=None, num_trajectory=1):
     env = gym.make(env_name)
     env.seed(seed + 100)
 
@@ -393,8 +393,8 @@ def evaluate_from_sa(policy, env_name, seed, qpos_tensor, qvel_tensor, gamma, ac
         episode_values = []
         qpos = qpos_tensor.cpu().numpy()[i, :]
         qvel = qvel_tensor.cpu().numpy()[i, :]
-        if action is not None:
-            init_action = action.cpu().numpy()[i, :]
+        if action_tensor is not None:
+            init_action = action_tensor.cpu().numpy()[i, :]
         else:
             init_action = None
         for k in range(num_trajectory):
