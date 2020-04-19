@@ -266,7 +266,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         print(f"Training iterations: {training_iters}")
 
         if args.test_critic_elbo and (training_iters % int(args.max_timesteps / 10) == 0):
-            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(1000)
+            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
             score, value, bsl_value, critic, bsl_critic \
                 = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
             np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
@@ -365,8 +365,8 @@ def evaluate_filter_and_critic(policy, state, action, qpos, qvel, args):
     score = -vae_loss.detach().cpu().numpy().flatten()
 
     # Evaluate
-    evaluates = evaluate_from_sa(policy, args.env, args.seed, qpos, qvel, args.discount, num_trajectory=10)
-    bsl_evaluates = evaluate_from_sa(policy, args.env, args.seed, qpos, qvel, args.discount, action, num_trajectory=10)
+    evaluates = evaluate_from_sa(policy, args.env, args.seed, qpos, qvel, args.discount, num_trajectory=1)
+    bsl_evaluates = evaluate_from_sa(policy, args.env, args.seed, qpos, qvel, args.discount, action, num_trajectory=1)
 
     # Compute critic
     batch_size = state.shape[0]
