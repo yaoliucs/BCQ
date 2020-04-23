@@ -220,7 +220,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     # Initialize policy
     policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
                            args.discount, args.tau, args.lmbda, args.phi,
-                           beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k)
+                           beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
+                           pretrain_vae=args.pretrain_vae)
 
     # Load buffer
     replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
@@ -230,21 +231,33 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     filter_scores = []
     episode_num = 0
     done = True
-    training_iters = 0
 
+    training_iters = 0
+    if args.pretrain_vae:
+        while training_iters < int(args.max_timesteps / 5):
+            vae_loss = policy.train_action_vae(replay_buffer, iterations=int(args.eval_freq),
+                                               batch_size=args.batch_size)
+            print(f"Training iterations: {training_iters}")
+            print("Action VAE loss", vae_loss)
+            training_iters += args.eval_freq
+
+    training_iters = 0
     while training_iters < int(args.max_timesteps / 5):
         vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         print(f"Training iterations: {training_iters}")
-        print("VAE loss", vae_loss)
+        print("State VAE loss", vae_loss)
         training_iters += args.eval_freq
 
     if False:  # args.automatic_beta:
         test_loss = policy.test_vae(replay_buffer, batch_size=100000)
         beta_c = np.percentile(test_loss, args.percentile)
         policy.beta_c = beta_c
-        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(beta_c)}_betaa{str(args.beta_a)}"
     else:
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+
+    if args.pretrain_vae:
+        hp_setting += "_fixvae"
 
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
@@ -462,8 +475,9 @@ if __name__ == "__main__":
     parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
     parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
     parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
-    parser.add_argument("--automatic_beta", action="store_true")  # If true, only test vae
-    parser.add_argument("--beta_percentile", type=float, default=2)  # If true, only test vae
+    parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
+    parser.add_argument("--beta_percentile", type=float, default=2)  #
+    parser.add_argument("--pretrain_vae", action="store_true")  # If true, pre train action vae
     args = parser.parse_args()
 
     print("---------------------------------------")

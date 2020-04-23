@@ -241,7 +241,7 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
-				 beta_a=0.0, beta_c=-2, sigmoid_k=100):
+				 beta_a=0.0, beta_c=-2, sigmoid_k=100, pretrain_vae=False):
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
 		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=1e-3)
@@ -266,6 +266,7 @@ class BCQ_state(object):
 		self.beta_a = beta_a
 		self.beta_c = beta_c
 		self.sigmoid_k = sigmoid_k
+		self.pretrain_vae = pretrain_vae
 
 	def select_action(self, state):
 		with torch.no_grad():
@@ -303,6 +304,20 @@ class BCQ_state(object):
 			self.vae2_optimizer.step()
 		return np.mean(scores)
 
+	def train_action_vae(self, replay_buffer, iterations, batch_size=100):
+		for it in range(iterations):
+			state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
+
+			# Variational Auto-Encoder Training
+			recon, mean, std = self.vae(state, action)
+			recon_loss = F.mse_loss(recon, action)
+			KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+			vae_loss = recon_loss + 0.5 * KL_loss
+
+			self.vae_optimizer.zero_grad()
+			vae_loss.backward()
+			self.vae_optimizer.step()
+
 	def test_vae(self, replay_buffer, batch_size=1000):
 		state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
 		recon, mean, std = self.vae2(next_state)
@@ -319,15 +334,16 @@ class BCQ_state(object):
 			# Sample replay buffer / batch
 			state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
 
-			# Variational Auto-Encoder Training
-			recon, mean, std = self.vae(state, action)
-			recon_loss = F.mse_loss(recon, action)
-			KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
-			vae_loss = recon_loss + 0.5 * KL_loss
+			if not self.pretrain_vae:
+				# Variational Auto-Encoder Training
+				recon, mean, std = self.vae(state, action)
+				recon_loss = F.mse_loss(recon, action)
+				KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+				vae_loss = recon_loss + 0.5 * KL_loss
 
-			self.vae_optimizer.zero_grad()
-			vae_loss.backward()
-			self.vae_optimizer.step()
+				self.vae_optimizer.zero_grad()
+				vae_loss.backward()
+				self.vae_optimizer.step()
 
 			# Critic Training
 			with torch.no_grad():
