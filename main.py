@@ -248,7 +248,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         print("State VAE loss", vae_loss)
         training_iters += args.eval_freq
 
-    if False:  # args.automatic_beta:
+    if args.automatic_beta:  # args.automatic_beta:
         test_loss = policy.test_vae(replay_buffer, batch_size=100000)
         beta_c = np.percentile(test_loss, args.percentile)
         policy.beta_c = beta_c
