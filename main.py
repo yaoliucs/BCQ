@@ -234,7 +234,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 
     training_iters = 0
     if args.pretrain_vae:
-        while training_iters < 200000:
+        while training_iters < 100000:
             vae_loss = policy.train_action_vae(replay_buffer, iterations=int(args.eval_freq),
                                                batch_size=args.batch_size)
             print(f"Training iterations: {training_iters}")
@@ -242,7 +242,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
             training_iters += args.eval_freq
 
     training_iters = 0
-    while training_iters < 200000:
+    while training_iters < 100000:
         vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         print(f"Training iterations: {training_iters}")
         print("State VAE loss", vae_loss)
