@@ -234,7 +234,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 
     training_iters = 0
     if args.pretrain_vae:
-        while training_iters < int(args.max_timesteps / 5):
+        while training_iters < 200000:
             vae_loss = policy.train_action_vae(replay_buffer, iterations=int(args.eval_freq),
                                                batch_size=args.batch_size)
             print(f"Training iterations: {training_iters}")
@@ -242,7 +242,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
             training_iters += args.eval_freq
 
     training_iters = 0
-    while training_iters < int(args.max_timesteps / 5):
+    while training_iters < 200000:
         vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         print(f"Training iterations: {training_iters}")
         print("State VAE loss", vae_loss)
@@ -250,9 +250,9 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 
     if args.automatic_beta:  # args.automatic_beta:
         test_loss = policy.test_vae(replay_buffer, batch_size=100000)
-        beta_c = np.percentile(test_loss, args.percentile)
+        beta_c = np.percentile(test_loss, args.beta_percentile)
         policy.beta_c = beta_c
-        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(beta_c)}_betaa{str(args.beta_a)}"
+        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{beta_c:.4f}_betaa{str(args.beta_a)}"
     else:
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
