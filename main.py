@@ -476,7 +476,7 @@ if __name__ == "__main__":
     parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
     parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
     parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
-    parser.add_argument("--beta_percentile", type=float, default=2)  #
+    parser.add_argument("--beta_percentile", type=float, default=1.5)  #
     parser.add_argument("--pretrain_vae", action="store_true")  # If true, pre train action vae
     args = parser.parse_args()
 
