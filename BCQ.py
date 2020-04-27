@@ -241,6 +241,7 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
+				 n_action=10, n_action_execute=10,
 				 beta_a=0.0, beta_c=-2, sigmoid_k=100, pretrain_vae=False):
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
@@ -267,10 +268,13 @@ class BCQ_state(object):
 		self.beta_c = beta_c
 		self.sigmoid_k = sigmoid_k
 		self.pretrain_vae = pretrain_vae
+		self.n_action = n_action
+		self.n_action_execute = n_action_execute
+
 
 	def select_action(self, state):
 		with torch.no_grad():
-			state = torch.FloatTensor(state.reshape(1, -1)).repeat(100, 1).to(self.device)
+			state = torch.FloatTensor(state.reshape(1, -1)).repeat(self.n_action_execute, 1).to(self.device)
 			action = self.actor(state, self.vae.decode(state))
 			q1 = self.critic.q1(state, action)
 			ind = q1.argmax(0)
@@ -348,7 +352,7 @@ class BCQ_state(object):
 			# Critic Training
 			with torch.no_grad():
 				# Duplicate next state 10 times
-				next_state = torch.repeat_interleave(next_state, 10, 0)
+				next_state = torch.repeat_interleave(next_state, self.n_action, 0)
 
 				# Compute value of perturbed actions sampled from the VAE
 				target_Q1, target_Q2 = self.critic_target(next_state,
@@ -385,7 +389,7 @@ class BCQ_state(object):
 			# Update through DPG
 			with torch.no_grad():
 				if self.beta_a < 0:
-					repeat_state = torch.repeat_interleave(state, 10, 0)
+					repeat_state = torch.repeat_interleave(state, self.n_action, 0)
 					recon, mean, std = self.vae2(repeat_state)
 					a_score = - ((recon - repeat_state) ** 2).mean(dim=1)
 					a_score += 0.5 * 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)

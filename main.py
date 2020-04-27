@@ -220,6 +220,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     # Initialize policy
     policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
                            args.discount, args.tau, args.lmbda, args.phi,
+                           n_action=args.n_action, n_action_execute=args.n_action_execute,
                            beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                            pretrain_vae=args.pretrain_vae)
 
@@ -252,9 +253,11 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         test_loss = policy.test_vae(replay_buffer, batch_size=100000)
         beta_c = np.percentile(test_loss, args.beta_percentile)
         policy.beta_c = beta_c
-        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_cpercentile{args.beta_percentile}"
+        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
+                     f"_{args.score_activation}_k{str(args.sigmoid_k)}_cpercentile{args.beta_percentile}"
     else:
-        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
+                     f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
     if args.pretrain_vae:
         hp_setting += "_fixvae"
@@ -384,7 +387,7 @@ def evaluate_filter_and_critic(policy, state, action, qpos, qvel, args):
     # Compute critic
     batch_size = state.shape[0]
     with torch.no_grad():
-        repeated_state = torch.repeat_interleave(state, 100, 0)
+        repeated_state = torch.repeat_interleave(state, args.n_action_execute, 0)
         sampled_actions = policy.vae.decode(repeated_state)
         perturbed_actions = policy.actor(repeated_state, sampled_actions)
         critic_values = policy.critic.q1(repeated_state, perturbed_actions).reshape(batch_size, -1).max(1)[0].reshape(
@@ -474,10 +477,13 @@ if __name__ == "__main__":
                         type=float)  # What is the threshold for the lagrange multiplier
     parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
     parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
+
     parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
     parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
     parser.add_argument("--beta_percentile", type=float, default=1.5)  #
     parser.add_argument("--pretrain_vae", action="store_true")  # If true, pre train action vae
+    parser.add_argument("--n_action", default=10, type=int)
+    parser.add_argument("--n_action_execute", default=100, type=int)
     args = parser.parse_args()
 
     print("---------------------------------------")
