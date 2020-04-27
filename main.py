@@ -228,8 +228,11 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                            pretrain_vae=args.pretrain_vae)
 
     # Load buffer
-    replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
-    replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size)
+    # replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
+    # replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size)
+    replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
+                                               env.init_qvel.shape[0], device)
+    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
 
     evaluations = []
     filter_scores = []
@@ -268,9 +271,6 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
             os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
-        ext_replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
-                                                   env.init_qvel.shape[0], device)
-        ext_replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
 
     # Start training
     print("Log files at:", f"./results/BCQState_{hp_setting}_{buffer_name}")
@@ -287,7 +287,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         print(f"Training iterations: {training_iters}")
 
         if args.test_critic_elbo and (training_iters % int(args.max_timesteps / 10) == 0):
-            state, action, next_state, reward, not_done, qpos, qvel = ext_replay_buffer.sample_more(100)
+            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
             score, value, bsl_value, critic, bsl_critic \
                 = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
             np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
