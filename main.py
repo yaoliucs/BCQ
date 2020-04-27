@@ -217,6 +217,9 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     setting = f"{args.env}_{args.seed}"
     buffer_name = f"{args.buffer_name}_{setting}"
 
+    print("=== Start Train ===\n")
+    print("Args:\n",args)
+
     # Initialize policy
     policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
                            args.discount, args.tau, args.lmbda, args.phi,
@@ -269,6 +272,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                                                    env.init_qvel.shape[0], device)
         replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
 
+    # Start training
+    print("Log files at:", f"./results/BCQState_{hp_setting}_{buffer_name}")
     training_iters = 0
     while training_iters < args.max_timesteps:
         score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
