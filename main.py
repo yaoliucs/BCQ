@@ -268,9 +268,9 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
             os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
-        replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
+        ext_replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
                                                    env.init_qvel.shape[0], device)
-        replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+        ext_replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
 
     # Start training
     print("Log files at:", f"./results/BCQState_{hp_setting}_{buffer_name}")
@@ -287,7 +287,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         print(f"Training iterations: {training_iters}")
 
         if args.test_critic_elbo and (training_iters % int(args.max_timesteps / 10) == 0):
-            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
+            state, action, next_state, reward, not_done, qpos, qvel = ext_replay_buffer.sample_more(100)
             score, value, bsl_value, critic, bsl_critic \
                 = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
             np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
@@ -470,18 +470,18 @@ if __name__ == "__main__":
     parser.add_argument("--load_buffer_size", default=100000, type=int)  # number of samples to load into the buffer
     # BEAR parameter
     parser.add_argument("--bear", action="store_true")  # If true, use an vae to fit state distribution
-    parser.add_argument("--version", default='0',
-                        type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
-    parser.add_argument('--mode', default='hardcoded',
-                        type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
-    parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
-    parser.add_argument('--mmd_sigma', default=10.0, type=float)  # The bandwidth of the MMD kernel parameter
-    parser.add_argument('--kernel_type', default='laplacian',
-                        type=str)  # kernel type for MMD ("laplacian" or "gaussian")
-    parser.add_argument('--lagrange_thresh', default=10.0,
-                        type=float)  # What is the threshold for the lagrange multiplier
-    parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
-    parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
+    # parser.add_argument("--version", default='0',
+    #                     type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
+    # parser.add_argument('--mode', default='hardcoded',
+    #                     type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
+    # parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
+    # parser.add_argument('--mmd_sigma', default=10.0, type=float)  # The bandwidth of the MMD kernel parameter
+    # parser.add_argument('--kernel_type', default='laplacian',
+    #                     type=str)  # kernel type for MMD ("laplacian" or "gaussian")
+    # parser.add_argument('--lagrange_thresh', default=10.0,
+    #                     type=float)  # What is the threshold for the lagrange multiplier
+    # parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
+    # parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
 
     parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
     parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
