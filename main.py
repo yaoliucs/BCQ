@@ -280,8 +280,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         evaluations.append(eval_policy(policy, args.env, args.seed))
         np.save(f"./results/BCQState_{hp_setting}_{buffer_name}", evaluations)
 
-        # filter_scores = np.append(filter_scores, score)
-        # np.save(f"./results/BCQState_{hp_setting}_{buffer_name}_filter", filter_scores)
+        filter_scores = np.append(filter_scores, score)
+        np.save(f"./results/BCQState_{hp_setting}_{buffer_name}_filter", filter_scores)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
