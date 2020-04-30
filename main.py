@@ -268,9 +268,9 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
             os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
-        replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
+        ext_replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
                                                    env.init_qvel.shape[0], device)
-        replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+        ext_replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
 
     # Start training
     print("Log files at:", f"./results/BCQState_{hp_setting}_{buffer_name}")
@@ -278,25 +278,25 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     while training_iters < args.max_timesteps:
         score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/1BCQState_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/2BCQState_{hp_setting}_{buffer_name}", evaluations)
 
         filter_scores = np.append(filter_scores, score)
-        np.save(f"./results/1BCQState_{hp_setting}_{buffer_name}_filter", filter_scores)
+        np.save(f"./results/2BCQState_{hp_setting}_{buffer_name}_filter", filter_scores)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
 
         if args.test_critic_elbo and (training_iters % int(args.max_timesteps / 10) == 0):
-            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
+            state, action, next_state, reward, not_done, qpos, qvel = ext_replay_buffer.sample_more(100)
             score, value, bsl_value, critic, bsl_critic \
                 = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_value", value)
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_bsl_value", bsl_value)
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_critic", critic)
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_bsl_critic", bsl_critic)
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_qpos", qpos.cpu().numpy())
-            np.save(f"./results/1SCheck_{hp_setting}_{buffer_name}/{training_iters}_qvel", qvel.cpu().numpy())
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_value", value)
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_bsl_value", bsl_value)
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_critic", critic)
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_bsl_critic", bsl_critic)
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_qpos", qpos.cpu().numpy())
+            np.save(f"./results/2SCheck_{hp_setting}_{buffer_name}/{training_iters}_qvel", qvel.cpu().numpy())
 
 
 def test_vae_state(state_dim, action_dim, max_state, max_action, device, args):
