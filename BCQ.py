@@ -241,7 +241,7 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
-				 n_action=10, n_action_execute=10,
+				 n_action=10, n_action_execute=10, qbackup=False,
 				 beta_a=0.0, beta_c=-2, sigmoid_k=100, pretrain_vae=False):
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
@@ -270,7 +270,7 @@ class BCQ_state(object):
 		self.pretrain_vae = pretrain_vae
 		self.n_action = n_action
 		self.n_action_execute = n_action_execute
-
+		self.qbackup = qbackup
 
 	def select_action(self, state):
 		with torch.no_grad():
@@ -355,8 +355,12 @@ class BCQ_state(object):
 				next_state = torch.repeat_interleave(next_state, self.n_action, 0)
 
 				# Compute value of perturbed actions sampled from the VAE
-				target_Q1, target_Q2 = self.critic_target(next_state,
-														  self.actor_target(next_state, self.vae.decode(next_state)))
+				if self.qbackup:
+					target_Q1, target_Q2 = self.critic_target(next_state,
+															  self.vae.decode(next_state))
+				else:
+					target_Q1, target_Q2 = self.critic_target(next_state,
+															  self.actor_target(next_state, self.vae.decode(next_state)))
 
 				# Soft Clipped Double Q-learning
 				target_Q = self.lmbda * torch.min(target_Q1, target_Q2) + (1. - self.lmbda) * torch.max(target_Q1,
