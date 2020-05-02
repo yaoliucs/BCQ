@@ -223,7 +223,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     # Initialize policy
     policy = BCQ.BCQ_state(state_dim, action_dim, max_state, max_action, device,
                            args.discount, args.tau, args.lmbda, args.phi,
-                           n_action=args.n_action, n_action_execute=args.n_action_execute, qbackup=args.qbackup,
+                           n_action=args.n_action, n_action_execute=args.n_action_execute,
+                           qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
                            beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                            pretrain_vae=args.pretrain_vae)
 
@@ -249,7 +250,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
             training_iters += args.eval_freq
 
     training_iters = 0
-    while training_iters < 10:
+    while training_iters < 200000:
         vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         print(f"Training iterations: {training_iters}")
         print("State VAE loss", vae_loss)
@@ -268,7 +269,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     if args.pretrain_vae:
         hp_setting += "_fixvae"
     if args.qbackup:
-        hp_setting += "_qbackup"
+        hp_setting += f"_qbackup{args.qbackup_noise}"
 
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
@@ -486,6 +487,7 @@ if __name__ == "__main__":
     # parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
 
     parser.add_argument("--qbackup", action="store_true")  # If true, use q learning backup instead of actor critic algorithm
+    parser.add_argument("--qbackup_noise", type=float, default=0.0)
     parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
     parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
     parser.add_argument("--beta_percentile", type=float, default=1.5)  #

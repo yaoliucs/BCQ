@@ -4,6 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+def add_gaussian_noise(actions, max_action, std):
+	return (
+		actions
+		+ max_action*std*torch.randn_like(actions)
+	).clamp(-max_action, max_action)
 
 class Actor(nn.Module):
 	def __init__(self, state_dim, action_dim, max_action, phi=0.05):
@@ -241,7 +246,7 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
-				 n_action=10, n_action_execute=10, qbackup=False,
+				 n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0,
 				 beta_a=0.0, beta_c=-2, sigmoid_k=100, pretrain_vae=False):
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
@@ -271,6 +276,7 @@ class BCQ_state(object):
 		self.n_action = n_action
 		self.n_action_execute = n_action_execute
 		self.qbackup = qbackup
+		self.qbackup_noise = qbackup_noise
 
 	def select_action(self, state):
 		with torch.no_grad():
@@ -357,7 +363,9 @@ class BCQ_state(object):
 				# Compute value of perturbed actions sampled from the VAE
 				if self.qbackup:
 					target_Q1, target_Q2 = self.critic_target(next_state,
-															  self.vae.decode(next_state))
+															  add_gaussian_noise(self.vae.decode(next_state),
+															  self.max_action,
+															  self.qbackup_noise))
 				else:
 					target_Q1, target_Q2 = self.critic_target(next_state,
 															  self.actor_target(next_state, self.vae.decode(next_state)))
