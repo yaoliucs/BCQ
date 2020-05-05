@@ -19,10 +19,15 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
 
     # Initialize and load policy
     policy = DDPG.DDPG(state_dim, action_dim, max_action, device)  # , args.discount, args.tau)
-    if args.generate_buffer: policy.load(f"./models/behavioral_{setting}")
+    if args.generate_buffer:
+        policy.load(f"./models/behavioral_{setting}")
+    if args.load_multiple_policy:
+        chk = 1
+        policy.load(f"./models/behavioral_{setting}_chk{chk}")
 
     # Initialize buffer
-    replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
+    # replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
+    replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0], env.init_qvel.shape[0], device)
 
     evaluations = []
     episode_values = []
@@ -50,11 +55,14 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
             ).clip(-max_action, max_action)
 
         # Perform action
+        qpos = env.sim.data.qpos.flat.copy()
+        qvel = env.sim.data.qvel.flat.copy()
         next_state, reward, done, _ = env.step(action)
         done_bool = float(done) if episode_timesteps < env._max_episode_steps else 0
 
         # Store data in replay buffer
-        replay_buffer.add(state, action, next_state, reward, done_bool)
+        # replay_buffer.add(state, action, next_state, reward, done_bool)
+        replay_buffer.add(state, action, next_state, reward, done_bool, qpos, qvel)
 
         state = next_state
         episode_reward += reward
@@ -77,12 +85,26 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
         # Evaluate episode
         if args.train_behavioral and (t + 1) % args.eval_freq == 0:
             evaluations.append(eval_policy(policy, args.env, args.seed))
-            np.save(f"./results/behavioral_{setting}", evaluations)
-            policy.save(f"./models/behavioral_{setting}")
+
+            if args.n_checkpoint > 0 and (t+1) % int(args.max_timesteps/args.n_checkpoint) == 0:
+                k = int((t+1)/int(args.max_timesteps/args.n_checkpoint))
+                policy.save(f"./models/behavioral_{setting}_chk{k}")
+                np.save(f"./results/behavioral_{setting}_chk{k}", evaluations)
+            else:
+                policy.save(f"./models/behavioral_{setting}")
+                np.save(f"./results/behavioral_{setting}", evaluations)
+        elif args.generate_buffer and args.load_multiple_policy:
+            if (t+1) % int(args.max_timesteps/args.n_checkpoint) == 0:
+                chk = min(chk+1,args.n_checkpoint)
+                policy.load(f"./models/behavioral_{setting}_chk{chk}")
 
     # Save final policy
     if args.train_behavioral:
-        policy.save(f"./models/behavioral_{setting}")
+        if args.n_checkpoint > 0:
+            k = int((t + 1) / int(args.max_timesteps / args.n_checkpoint))
+            policy.save(f"./models/behavioral_{setting}_chk{k}")
+        else:
+            policy.save(f"./models/behavioral_{setting}")
         replay_buffer.save(f"./buffers/{buffer_name}")
         noisy_evaluation = np.mean(episode_values)
         np.save(f"./results/buffer_average_performance_{buffer_name}", noisy_evaluation)
@@ -494,6 +516,10 @@ if __name__ == "__main__":
     parser.add_argument("--pretrain_vae", action="store_true")  # If true, pre train action vae
     parser.add_argument("--n_action", default=10, type=int)
     parser.add_argument("--n_action_execute", default=100, type=int)
+
+    parser.add_argument("--n_checkpoint", default=0, type=int) # Number of checkpoints to save
+    parser.add_argument("--load_multiple_policy", action="store_true") # Load multiple policy
+
     args = parser.parse_args()
 
     print("---------------------------------------")
