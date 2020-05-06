@@ -312,6 +312,17 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         print(f"Training iterations: {training_iters}")
 
         if args.test_critic_elbo and (training_iters % int(args.max_timesteps / 10) == 0):
+            init_state, init_action, init_qp, init_qv = sample_initial_state_action(policy, 100, args, policy.device)
+            score, value, bsl_value, critic, bsl_critic \
+                = evaluate_filter_and_critic(policy, init_state, init_action, init_qp, init_qv, args)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_score", score)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_value", value)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_bsl_value", bsl_value)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_critic", critic)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_bsl_critic", bsl_critic)
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_qpos", init_qp.cpu().numpy())
+            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_qvel", init_qv.cpu().numpy())
+
             state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
             score, value, bsl_value, critic, bsl_critic \
                 = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
@@ -427,6 +438,29 @@ def evaluate_filter_and_critic(policy, state, action, qpos, qvel, args):
         bsl_critic_values = policy.critic.q1(state, action).cpu().numpy().flatten()
 
     return (score, evaluates, bsl_evaluates, critic_values, bsl_critic_values)
+
+def sample_initial_state_action(policy, num_state, args, device):
+    env = gym.make(args.env)
+    env.seed(args.seed+100)
+
+    states = np.zeros((num_state, env.observation_space.shape[0]))
+    qpos = np.zeros((num_state, env.init_qpos.shape[0]))
+    qvel = np.zeros((num_state, env.init_qvel.shape[0]))
+
+    for i in range(num_state):
+        s = env.reset()
+        qp = env.sim.data.qpos.flat.copy()
+        qv = env.sim.data.qvel.flat.copy()
+        states[i,:] = s
+        qpos[i,:] = qp
+        qvel[i,:] = qv
+
+    states = torch.FloatTensor(states).to(device)
+    with torch.no_grad():
+        actions = policy.vae.decode(states)
+    qpos = torch.FloatTensor(qpos).to(device)
+    qvel = torch.FloatTensor(qvel).to(device)
+    return (states, actions, qpos, qvel)
 
 
 def evaluate_from_sa(policy, env_name, seed, qpos_tensor, qvel_tensor, gamma, action_tensor=None, num_trajectory=1):
