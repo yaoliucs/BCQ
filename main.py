@@ -247,6 +247,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                            args.discount, args.tau, args.lmbda, args.phi,
                            n_action=args.n_action, n_action_execute=args.n_action_execute,
                            qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
+                           score_activation=args.score_activation,
                            beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                            pretrain_vae=args.pretrain_vae)
 
@@ -284,6 +285,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         policy.beta_c = beta_c
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
                      f"_{args.score_activation}_k{str(args.sigmoid_k)}_cpercentile{args.beta_percentile}"
+        np.save(f"./results/BCQState_{hp_setting}_{buffer_name}_vaescore", test_loss)
+        print("Test vae",args.beta_percentile,"percentile:", beta_c)
     else:
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
                      f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
