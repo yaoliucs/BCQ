@@ -305,7 +305,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     training_iters = 0
     while training_iters < args.max_timesteps:
         score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-        evaluations.append(eval_policy(policy, args.env, args.seed))
+        evaluations.append(eval_policy(policy, args.env, args.seed, eval_episodes=20))
         np.save(f"./results/BCQState_{hp_setting}_{buffer_name}", evaluations)
 
         filter_scores = np.append(filter_scores, score)
@@ -314,7 +314,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
 
-        if args.test_critic_elbo and (training_iters % int(args.max_timesteps / 10) == 0):
+        if args.test_critic_elbo and (training_iters % 100000 == 0):
             init_state, init_action, init_qp, init_qv = sample_initial_state_action(policy, 100, args, policy.device)
             score, value, bsl_value, critic, bsl_critic \
                 = evaluate_filter_and_critic(policy, init_state, init_action, init_qp, init_qv, args)
@@ -507,7 +507,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", default="Hopper-v3")  # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--buffer_name", default="Imperfect")  # Prepends name to filename "Final/Imitation/Imperfect"
-    parser.add_argument("--eval_freq", default=5e3, type=float)  # How often (time steps) we evaluate
+    parser.add_argument("--eval_freq", default=1e4, type=float)  # How often (time steps) we evaluate
     parser.add_argument("--max_timesteps", default=1e6,
                         type=int)  # Max time steps to run environment or train for (this defines buffer size)
     parser.add_argument("--start_timesteps", default=25e3,
