@@ -248,6 +248,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                            n_action=args.n_action, n_action_execute=args.n_action_execute,
                            qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
                            score_activation=args.score_activation,
+                           actor_lr=args.actor_lr,
                            beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                            pretrain_vae=args.pretrain_vae)
 
@@ -295,6 +296,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         hp_setting += "_fixvae"
     if args.qbackup:
         hp_setting += f"_qbackup{args.qbackup_noise}"
+    if args.actor_lr != 1e-3:
+        hp_setting += f"_lr{actor_lr}"
 
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
@@ -530,6 +533,7 @@ if __name__ == "__main__":
     parser.add_argument("--beta_c", default=-0.4, type=float)  # state filter hyperparameter (critic)
     parser.add_argument("--sigmoid_k", default=100, type=float)
     parser.add_argument("--load_buffer_size", default=100000, type=int)  # number of samples to load into the buffer
+    parser.add_argument("--actor_lr", default=1e-3, type=float) # learning rate of actor
     # BEAR parameter
     parser.add_argument("--bear", action="store_true")  # If true, use BEAR
     # parser.add_argument("--version", default='0',

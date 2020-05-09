@@ -246,11 +246,11 @@ class BCQ(object):
 
 class BCQ_state(object):
 	def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75, phi=0.05,
-				 n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0, score_activation="sigmoid",
+				 n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0, score_activation="sigmoid", actor_lr=1e-3,
 				 beta_a=0.0, beta_c=-2, sigmoid_k=100, pretrain_vae=False):
 		self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
-		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=1e-3)
+		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
 
 		self.critic = Critic(state_dim, action_dim).to(device)
 		self.critic_target = copy.deepcopy(self.critic)
