@@ -297,7 +297,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     if args.qbackup:
         hp_setting += f"_qbackup{args.qbackup_noise}"
     if args.actor_lr != 1e-3:
-        hp_setting += f"_lr{actor_lr}"
+        hp_setting += f"_lr{args.actor_lr}"
 
     if args.test_critic_elbo:
         if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
