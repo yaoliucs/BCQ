@@ -282,7 +282,6 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     if args.vae_type == "gumbel":
         state, action, next_state, reward, not_done = replay_buffer.sample(100000)
         policy.vae2.compute_frequency(next_state)
-        print(policy.vae2.frequency.shape)
         policy.vae2.save(f"./models/gsvae_{setting}")
     else:
         policy.vae2.save(f"./models/vae_{setting}")
