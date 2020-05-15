@@ -174,6 +174,7 @@ class VAE_gumbel(nn.Module):
     def frequency_score(self, x, hard=False):
         assert self.frequency is not None
         recon_x, qy = self.forward(x, hard)
+        qy = qy.view(-1, self.latent_dim, self.categorical_dim)
         return torch.prod((qy * self.frequency).sum(dim=-1), dim=-1).detach()
 
 def train(model, optimizer, replay_buffer, iterations, batch_size):

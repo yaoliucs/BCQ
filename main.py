@@ -249,6 +249,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                            qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
                            score_activation=args.score_activation,
                            actor_lr=args.actor_lr,
+                           vae_type=args.vae_type,
                            beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                            pretrain_vae=args.pretrain_vae)
 
@@ -276,9 +277,15 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     training_iters = 0
     while training_iters < 200000:
         vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-        print(f"Training iterations: {training_iters}")
-        print("State VAE loss", vae_loss)
+        print(f"Training iterations: {training_iters}. State VAE loss: {vae_loss:.3f}.") # Recon MSE: {recon_mse:.3f}"
         training_iters += args.eval_freq
+    if args.vae_type == "gumbel":
+        state, action, next_state, reward, not_done = replay_buffer.sample(100000)
+        policy.vae2.compute_frequency(next_state)
+        print(policy.vae2.frequency.shape)
+        policy.vae2.save(f"./models/gsvae_{setting}")
+    else:
+        policy.vae2.save(f"./models/vae_{setting}")
 
     if args.automatic_beta:  # args.automatic_beta:
         test_loss = policy.test_vae(replay_buffer, batch_size=100000)
@@ -292,6 +299,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
                      f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
+    if args.vae_type == "gumbel":
+        hp_setting += "_gsvae"
     if args.pretrain_vae:
         hp_setting += "_fixvae"
     if args.qbackup:
@@ -527,8 +536,9 @@ if __name__ == "__main__":
     parser.add_argument("--train_behavioral", action="store_true")  # If true, train behavioral (DDPG)
     parser.add_argument("--generate_buffer", action="store_true")  # If true, generate buffer
     parser.add_argument("--state_vae", action="store_true")  # If true, use an vae to fit state distribution
+    parser.add_argument("--vae_type", default="vanilla")  # "vanilla": vae, "gumbel": gumbel, discrete
     parser.add_argument("--test_state_vae", action="store_true")  # If true, only test vae
-    parser.add_argument("--score_activation", default="sigmoid")  # "sigmoid", "sigmoid_exp", "hard"
+    parser.add_argument("--score_activation", default="sigmoid")  # "sigmoid", "KL", "frequency"
     parser.add_argument("--beta_a", default=0.0, type=float)  # state filter hyperparameter (actor)
     parser.add_argument("--beta_c", default=-0.4, type=float)  # state filter hyperparameter (critic)
     parser.add_argument("--sigmoid_k", default=100, type=float)
