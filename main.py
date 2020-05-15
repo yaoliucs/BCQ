@@ -430,10 +430,21 @@ def eval_noisy_policy(policy, env_name, seed, rand_action_p, gaussian_std,
 
 def evaluate_filter_and_critic(policy, state, action, qpos, qvel, args):
     # Compute score
-    recon, mean, std = policy.vae2(state)
-    recon_loss = ((recon - state) ** 2).mean(dim=1)
-    KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
-    vae_loss = recon_loss + 0.5 * KL_loss
+    if policy.discrete_type == "vanilla":
+        recon, mean, std = policy.vae2(state)
+        recon_loss = ((recon - state) ** 2).mean(dim=1)
+        KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+        if policy.score_activation == "KL":
+            vae_loss = 0.5 * KL_loss
+        else:
+            vae_loss = recon_loss + 0.5 * KL_loss
+    elif policy.discrete_type == "gumbel":
+        if policy.score_activation == "KL":
+            vae_loss = policy.vae2.latent_KL(state)
+        elif policy.score_activation == "frequency":
+            vae_loss = -policy.vae2.frequency_score(state)
+        else:
+            vae_loss = policy.vae2.elbo_loss(state)
     score = -vae_loss.detach().cpu().numpy().flatten()
 
     # Evaluate
