@@ -2,5 +2,6 @@
 buffers/*
 models/*
 results/*
+data/*
 __pycache__/*
 .DS_Store
