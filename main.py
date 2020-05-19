@@ -274,12 +274,11 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
             print("Action VAE loss", vae_loss)
             training_iters += args.eval_freq
 
-    # training_iters = 0
-    # while training_iters < 200000:
-    #     vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-    #     print(f"Training iterations: {training_iters}. State VAE loss: {vae_loss:.3f}.") # Recon MSE: {recon_mse:.3f}"
-    #     training_iters += args.eval_freq
-    policy.vae2.load(f"./models/gsvae_{setting}")
+    training_iters = 0
+    while training_iters < 200000:
+        vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
+        print(f"Training iterations: {training_iters}. State VAE loss: {vae_loss:.3f}.") # Recon MSE: {recon_mse:.3f}"
+        training_iters += args.eval_freq
     if args.vae_type == "gumbel":
         state, action, next_state, reward, not_done = replay_buffer.sample(100000)
         policy.vae2.compute_frequency(next_state)
