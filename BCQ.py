@@ -261,7 +261,7 @@ class BCQ_state(object):
         if vae_type == "vanilla":
             self.vae2 = VAE_state(state_dim, state_dim * 2, max_state, device).to(device)
         elif vae_type == "gumbel":
-            self.vae2 = VAE_gumbel(state_dim, 4, 10, device).to(device)
+            self.vae2 = VAE_gumbel(state_dim, 2, 100, device).to(device)
         else:
             raise NotImplementedError
         self.vae2_optimizer = torch.optim.Adam(self.vae2.parameters())

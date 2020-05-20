@@ -299,7 +299,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                      f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
     if args.vae_type == "gumbel":
-        hp_setting += "_gsvae"
+        hp_setting += "_gsvae_2"
     if args.pretrain_vae:
         hp_setting += "_fixvae"
     if args.qbackup:
