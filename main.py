@@ -194,6 +194,15 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
         print("VAE loss", vae_loss)
         training_iters += args.eval_freq
 
+    if args.vae_type == "gumbel":
+        hp_setting += "_gsvae_2"
+    if args.pretrain_vae:
+        hp_setting += "_fixvae"
+    if args.qbackup:
+        hp_setting += f"_qbackup{args.qbackup_noise}"
+    if args.actor_lr != 1e-3:
+        hp_setting += f"_lr{args.actor_lr}"
+
     training_iters = 0
 
     while training_iters < args.max_timesteps:
