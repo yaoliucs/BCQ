@@ -35,6 +35,13 @@ def atanh(x):
     return 0.5 * torch.log(one_plus_x / one_minus_x)
 
 
+def add_gaussian_noise(actions, max_action, std):
+    return (
+        actions
+        + max_action * std * torch.randn_like(actions)
+    ).clamp(-max_action, max_action)
+
+
 class RegularActor(nn.Module):
     """A probabilistic actor which does regular stochastic mapping of actions from states"""
 
@@ -283,6 +290,7 @@ class BEAR(object):
                  lambda_=0.4,
                  threshold=0.05, mode='auto', num_samples_match=10, mmd_sigma=10.0,
                  lagrange_thresh=10.0, use_kl=False, use_ensemble=True, kernel_type='laplacian', use_state_vae=False,
+                 n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0,
                  beta_a=0.0, beta_c=0.0, sigmoid_k=100):
         latent_dim = action_dim * 2
         self.actor = RegularActor(state_dim, action_dim, max_action).to(device)
@@ -319,6 +327,10 @@ class BEAR(object):
         self.beta_a = beta_a
         self.beta_c = beta_c
         self.sigmoid_k = sigmoid_k
+        self.n_action = n_action
+        self.n_action_execute = n_action_execute
+        self.qbackup = qbackup
+        self.qbackup_noise = qbackup_noise
 
         if self.mode == 'auto':
             # Use lagrange multipliers on the constraint if set to auto mode
@@ -384,7 +396,7 @@ class BEAR(object):
         """When running the actor, we just select action based on the max of the Q-function computed over
             samples from the policy -- which biases things to support."""
         with torch.no_grad():
-            state = torch.FloatTensor(state.reshape(1, -1)).repeat(10, 1).to(device)
+            state = torch.FloatTensor(state.reshape(1, -1)).repeat(self.n_action_execute, 1).to(device)
             action = self.actor(state)
             q1 = self.critic.q1(state, action)
             ind = q1.max(0)[1]
@@ -438,10 +450,16 @@ class BEAR(object):
             # Critic Training: In this step, we explicitly compute the actions
             with torch.no_grad():
                 # Duplicate state 10 times (10 is a hyperparameter chosen by BCQ)
-                state_rep = torch.FloatTensor(np.repeat(next_state_np, 10, axis=0)).to(device)
+                state_rep = torch.FloatTensor(np.repeat(next_state_np, self.n_action, axis=0)).to(device)
 
                 # Compute value of perturbed actions sampled from the VAE
-                target_Qs = self.critic_target(state_rep, self.actor_target(state_rep))
+
+                if self.qbackup:
+                    target_Qs = self.critic_target(next_state, add_gaussian_noise(self.vae.decode(next_state),
+                                                                                  self.max_action,
+                                                                                  self.qbackup_noise))
+                else:
+                    target_Qs = self.critic_target(state_rep, self.actor_target(state_rep))
 
                 if self.use_state_vae and self.beta_c < 0:
                     recon, mean, std = self.vae2(state_rep)

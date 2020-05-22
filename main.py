@@ -176,7 +176,9 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
                        use_ensemble=(False if args.use_ensemble_variance == "False" else True),
                        kernel_type=args.kernel_type,
                        use_state_vae=args.state_vae,
-                       beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k
+                       beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
+                       n_action=args.n_action, n_action_execute=args.n_action_execute,
+                       qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
                        )
 
     # Load buffer
@@ -184,11 +186,9 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
     replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
 
     evaluations = []
-    episode_num = 0
-    done = True
     training_iters = 0
 
-    while training_iters < int(args.max_timesteps / 5):
+    while training_iters < int(200000):
         vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         print(f"Training iterations: {training_iters}")
         print("VAE loss", vae_loss)
