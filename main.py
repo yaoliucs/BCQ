@@ -556,18 +556,18 @@ if __name__ == "__main__":
     parser.add_argument("--actor_lr", default=1e-3, type=float) # learning rate of actor
     # BEAR parameter
     parser.add_argument("--bear", action="store_true")  # If true, use BEAR
-    # parser.add_argument("--version", default='0',
-    #                     type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
-    # parser.add_argument('--mode', default='hardcoded',
-    #                     type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
-    # parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
-    # parser.add_argument('--mmd_sigma', default=10.0, type=float)  # The bandwidth of the MMD kernel parameter
-    # parser.add_argument('--kernel_type', default='laplacian',
-    #                     type=str)  # kernel type for MMD ("laplacian" or "gaussian")
-    # parser.add_argument('--lagrange_thresh', default=10.0,
-    #                     type=float)  # What is the threshold for the lagrange multiplier
-    # parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
-    # parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
+    parser.add_argument("--version", default='0',
+                        type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
+    parser.add_argument('--mode', default='hardcoded',
+                        type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
+    parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
+    parser.add_argument('--mmd_sigma', default=10.0, type=float)  # The bandwidth of the MMD kernel parameter
+    parser.add_argument('--kernel_type', default='laplacian',
+                        type=str)  # kernel type for MMD ("laplacian" or "gaussian")
+    parser.add_argument('--lagrange_thresh', default=10.0,
+                        type=float)  # What is the threshold for the lagrange multiplier
+    parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
+    parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
 
     parser.add_argument("--qbackup", action="store_true")  # If true, use q learning backup instead of actor critic algorithm
     parser.add_argument("--qbackup_noise", type=float, default=0.0)
