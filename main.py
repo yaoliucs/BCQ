@@ -124,6 +124,8 @@ def train_BEAR(state_dim, action_dim, max_action, device, args):
     print("Training BEAR\n")
     setting = f"{args.env}_{args.seed}"
     buffer_name = f"{args.buffer_name}_{setting}"
+    hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
+                 f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
 
     # Initialize policy
     policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
@@ -151,7 +153,7 @@ def train_BEAR(state_dim, action_dim, max_action, device, args):
         pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEAR_N{args.load_buffer_size}_{buffer_name}", evaluations)
+        np.save(f"./results/BEAR_{hp_setting}_{buffer_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
@@ -161,8 +163,8 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
     print("Training BEARState\n")
     setting = f"{args.env}_{args.seed}"
     buffer_name = f"{args.buffer_name}_{setting}"
-    hp_setting = f"N{args.load_buffer_size}_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
-
+    hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
+                 f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
     # Initialize policy
     policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
                        version=args.version,
@@ -397,7 +399,6 @@ def eval_policy(policy, env_name, seed, eval_episodes=10):
         state, done = eval_env.reset(), False
         while not done:
             action = policy.select_action(np.array(state))
-            time.sleep(0.002)
             state, reward, done, _ = eval_env.step(action)
             avg_reward += reward
 

@@ -528,7 +528,8 @@ class BEAR(object):
                 critic_qs = critic_qs.mean(0)
 
             # We do support matching with a warmstart which happens to be reasonable around epoch 20 during training
-            if self.epoch >= 20:
+            # Change to 10 because I doubled the epoch length
+            if self.epoch >= 10:
                 if self.mode == 'auto':
                     actor_loss = (-critic_qs + \
                                   self._lambda * (np.sqrt((1 - self.delta_conf) / self.delta_conf)) * std_q + \
