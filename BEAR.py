@@ -550,7 +550,8 @@ class BEAR(object):
                 actor_loss.backward(retain_graph=True)
             else:
                 actor_loss.backward()
-            torch.nn.utils.clip_grad_norm(self.actor.parameters(), 10.0)
+            norm = torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 10.0)
+            print(it, actor_loss, norm)
             self.actor_optimizer.step()
 
             # Threshold for the lagrange multiplier
