@@ -553,13 +553,9 @@ class BEAR(object):
             else:
                 actor_loss.backward()
             print("Loss")
-            print(critic_qs)
-            print(self._lambda)
-            print(self.delta_conf)
-            print(std_q)
+            print(critic_qs.mean())
+            print(mmd_loss.mean())
             print(actor_loss)
-            print(self.log_lagrange2)
-            print(mmd_loss)
             # torch.nn.utils.clip_grad_norm(self.actor.parameters(), 10.0)
             self.actor_optimizer.step()
 
