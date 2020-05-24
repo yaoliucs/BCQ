@@ -551,8 +551,11 @@ class BEAR(object):
             else:
                 actor_loss.backward()
             norm = torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 10.0)
-            print(it, actor_loss, norm)
-            self.actor_optimizer.step()
+            if np.isnan(norm):
+                print("ValueError: nan in gradients. Ending current train.")
+                self.actor_optimizer.zero_grad()
+            else:
+                self.actor_optimizer.step()
 
             # Threshold for the lagrange multiplier
             thresh = 0.05
