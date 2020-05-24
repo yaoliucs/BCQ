@@ -400,8 +400,6 @@ class BEAR(object):
             action = self.actor(state)
             q1 = self.critic.q1(state, action)
             ind = q1.max(0)[1]
-        print("Action")
-        print(action[ind].cpu().data.numpy().flatten())
         return action[ind].cpu().data.numpy().flatten()
 
     def train_vae(self, replay_buffer, iterations, batch_size=100):
@@ -552,11 +550,7 @@ class BEAR(object):
                 actor_loss.backward(retain_graph=True)
             else:
                 actor_loss.backward()
-            print("Loss")
-            print(critic_qs.mean())
-            print(mmd_loss.mean())
-            print(actor_loss)
-            # torch.nn.utils.clip_grad_norm(self.actor.parameters(), 10.0)
+            torch.nn.utils.clip_grad_norm(self.actor.parameters(), 10.0)
             self.actor_optimizer.step()
 
             # Threshold for the lagrange multiplier
