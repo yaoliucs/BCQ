@@ -400,6 +400,7 @@ class BEAR(object):
             action = self.actor(state)
             q1 = self.critic.q1(state, action)
             ind = q1.max(0)[1]
+        print("Action")
         print(action[ind].cpu().data.numpy().flatten())
         return action[ind].cpu().data.numpy().flatten()
 
@@ -551,6 +552,14 @@ class BEAR(object):
                 actor_loss.backward(retain_graph=True)
             else:
                 actor_loss.backward()
+            print("Loss")
+            print(critic_qs)
+            print(self._lambda)
+            print(self.delta_conf)
+            print(std_q)
+            print(actor_loss)
+            print(self.log_lagrange2)
+            print(mmd_loss)
             # torch.nn.utils.clip_grad_norm(self.actor.parameters(), 10.0)
             self.actor_optimizer.step()
 
