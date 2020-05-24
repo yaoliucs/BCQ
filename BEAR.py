@@ -400,6 +400,7 @@ class BEAR(object):
             action = self.actor(state)
             q1 = self.critic.q1(state, action)
             ind = q1.max(0)[1]
+        print(action[ind].cpu().data.numpy().flatten())
         return action[ind].cpu().data.numpy().flatten()
 
     def train_vae(self, replay_buffer, iterations, batch_size=100):
