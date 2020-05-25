@@ -156,7 +156,7 @@ def train_BEAR(state_dim, action_dim, max_action, device, args):
         pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEAR_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/BEAR2_{hp_setting}_{buffer_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
@@ -215,7 +215,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
         pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEARState_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/BEARState2_{hp_setting}_{buffer_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
@@ -581,7 +581,7 @@ if __name__ == "__main__":
     parser.add_argument('--lagrange_thresh', default=10.0,
                         type=float)  # What is the threshold for the lagrange multiplier
     parser.add_argument('--distance_type', default="MMD", type=str)  # Distance type ("KL" or "MMD")
-    parser.add_argument('--use_ensemble_variance', default='True', type=str)  # Whether to use ensemble variance or not
+    parser.add_argument('--use_ensemble_variance', default='False', type=str)  # Whether to use ensemble variance or not
 
     parser.add_argument("--qbackup", action="store_true")  # If true, use q learning backup instead of actor critic algorithm
     parser.add_argument("--qbackup_noise", type=float, default=0.0)
