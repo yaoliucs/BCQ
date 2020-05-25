@@ -288,7 +288,7 @@ class VAE(nn.Module):
 class BEAR(object):
     def __init__(self, num_qs, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=True, version=0,
                  lambda_=0.4,
-                 threshold=0.05, mode='auto', num_samples_match=10, mmd_sigma=10.0,
+                 threshold=0.05, mode='auto', num_samples_match=10, mmd_sigma=10.0, actor_lr=1e-3,
                  lagrange_thresh=10.0, use_kl=False, use_ensemble=True, kernel_type='laplacian', use_state_vae=False,
                  n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0,
                  beta_a=0.0, beta_c=0.0, sigmoid_k=100):
@@ -296,7 +296,7 @@ class BEAR(object):
         self.actor = RegularActor(state_dim, action_dim, max_action).to(device)
         self.actor_target = RegularActor(state_dim, action_dim, max_action).to(device)
         self.actor_target.load_state_dict(self.actor.state_dict())
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters())
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
 
         self.critic = EnsembleCritic(num_qs, state_dim, action_dim).to(device)
         self.critic_target = EnsembleCritic(num_qs, state_dim, action_dim).to(device)
@@ -551,7 +551,14 @@ class BEAR(object):
                 actor_loss.backward(retain_graph=True)
             else:
                 actor_loss.backward()
-            norm = torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 10.0)
+
+            # check norm
+            # norm = torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 10.0)
+            norm = 0
+            for p in self.actor.parameters():
+                param_norm = p.grad.data.norm(2)
+                norm += param_norm.item() ** 2
+            norm = norm ** (1. / 2)
             if np.isnan(norm):
                 print("ValueError: nan in gradients. Ending current train.")
                 self.actor_optimizer.zero_grad()

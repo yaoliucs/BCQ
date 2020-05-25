@@ -138,12 +138,15 @@ def train_BEAR(state_dim, action_dim, max_action, device, args):
                        lagrange_thresh=args.lagrange_thresh,
                        use_kl=(True if args.distance_type == "KL" else False),
                        use_ensemble=(False if args.use_ensemble_variance == "False" else True),
-                       kernel_type=args.kernel_type)
+                       kernel_type=args.kernel_type,
+                       actor_lr=args.actor_lr)
 
     # Load buffer
     replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
     replay_buffer.load(f"./buffers/Extended-{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
 
+    if args.actor_lr != 1e-3:
+        hp_setting += f"_lr{args.actor_lr}"
     evaluations = []
     episode_num = 0
     done = True
@@ -178,6 +181,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
                        use_ensemble=(False if args.use_ensemble_variance == "False" else True),
                        kernel_type=args.kernel_type,
                        use_state_vae=args.state_vae,
+                       actor_lr=args.actor_lr,
                        beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                        n_action=args.n_action, n_action_execute=args.n_action_execute,
                        qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
