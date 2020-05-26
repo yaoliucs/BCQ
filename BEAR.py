@@ -564,7 +564,7 @@ class BEAR(object):
                   std_q.mean().item(),
                   #self.log_lagrange2.exp().mean().item(),
                   mmd_loss.mean().item())
-            if np.isnan(norm):
+            if False:
                 print("ValueError: nan in gradients. Ending current train.")
                 self.actor_optimizer.zero_grad()
             else:

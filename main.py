@@ -156,7 +156,7 @@ def train_BEAR(state_dim, action_dim, max_action, device, args):
         pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEAR2_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/BEAR3_{hp_setting}_{buffer_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
@@ -215,7 +215,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
         pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEARState2_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/BEARState3_{hp_setting}_{buffer_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
