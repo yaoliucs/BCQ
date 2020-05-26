@@ -572,7 +572,7 @@ if __name__ == "__main__":
     parser.add_argument("--bear", action="store_true")  # If true, use BEAR
     parser.add_argument("--version", default='0',
                         type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
-    parser.add_argument('--mode', default='hardcoded', #hardcoded
+    parser.add_argument('--mode', default='auto', #hardcoded
                         type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
     parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
     parser.add_argument('--mmd_sigma', default=10.0, type=float)  # The bandwidth of the MMD kernel parameter
