@@ -529,7 +529,7 @@ class BEAR(object):
 
             # We do support matching with a warmstart which happens to be reasonable around epoch 20 during training
             # Change to 10 because I doubled the epoch length
-            if self.epoch >= 0:
+            if self.epoch >= 10:
                 if self.mode == 'auto':
                     actor_loss = (-critic_qs + \
                                   self._lambda * (np.sqrt((1 - self.delta_conf) / self.delta_conf)) * std_q + \
@@ -559,12 +559,12 @@ class BEAR(object):
                 param_norm = p.grad.data.norm(2)
                 norm += param_norm.item() ** 2
             norm = norm ** (1. / 2)
-            print(it, actor_loss.item(),
-                  critic_qs.mean().item(),
-                  std_q.mean().item(),
-                  self.log_lagrange2.exp().mean().item(),
-                  mmd_loss.mean().item())
-            if False: #np.isnan(norm):
+            # print(it, actor_loss.item(),
+            #       critic_qs.mean().item(),
+            #       std_q.mean().item(),
+            #       self.log_lagrange2.exp().mean().item(),
+            #       mmd_loss.mean().item())
+            if np.isnan(norm):
                 print("ValueError: nan in gradients. Ending current train.")
                 self.actor_optimizer.zero_grad()
             else:
