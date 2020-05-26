@@ -559,7 +559,11 @@ class BEAR(object):
                 param_norm = p.grad.data.norm(2)
                 norm += param_norm.item() ** 2
             norm = norm ** (1. / 2)
-            print(it, actor_loss, critic_qs.mean(), std_q.mean(), self.log_lagrange2.exp().mean(), mmd_loss.mean())
+            print(it, actor_loss.item(),
+                  critic_qs.mean().item(),
+                  std_q.mean().item(),
+                  self.log_lagrange2.exp().mean().item(),
+                  mmd_loss.mean().item())
             if np.isnan(norm):
                 print("ValueError: nan in gradients. Ending current train.")
                 self.actor_optimizer.zero_grad()
