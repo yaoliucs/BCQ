@@ -364,6 +364,62 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
             np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qvel", qvel.cpu().numpy())
 
 
+def train_BC(state_dim, action_dim, max_action, device, args):
+    # For saving files
+    setting = f"{args.env}_{args.seed}"
+    buffer_name = f"{args.buffer_name}_{setting}"
+
+    # Initialize policy
+    policy = BCQ.BCQ_state(state_dim, action_dim, None, max_action, device, args.discount, args.tau, args.lmbda, phi=0)
+
+    # Load buffer
+    replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
+                                               env.init_qvel.shape[0], device)
+    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+
+    evaluations = []
+    episode_num = 0
+    done = True
+    training_iters = 0
+
+    while training_iters < args.max_timesteps:
+        vae_loss = policy.train_action_vae(replay_buffer, iterations=int(args.eval_freq),
+                                           batch_size=args.batch_size)
+
+        evaluations.append(eval_policy(policy, args.env, args.seed))
+        np.save(f"./results/BC_N{args.load_buffer_size}_phi{args.phi}_{buffer_name}", evaluations)
+
+        training_iters += args.eval_freq
+        print(f"Training iterations: {training_iters}")
+
+
+def train_offline_DDPG(state_dim, action_dim, max_action, device, args):
+    # For saving files
+    setting = f"{args.env}_{args.seed}"
+    buffer_name = f"{args.buffer_name}_{setting}"
+
+    # Initialize policy
+    policy = DDPG.DDPG(state_dim, action_dim, max_action, device)  # , args.discount, args.tau)
+
+    # Load buffer
+    replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
+                                               env.init_qvel.shape[0], device)
+    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+
+    evaluations = []
+    episode_num = 0
+    done = True
+    training_iters = 0
+
+    while training_iters < args.max_timesteps:
+        pol_vals = policy.train(replay_buffer, batch_size=args.batch_size)
+        training_iters += 1
+        if training_iters % args.eval_freq == 0:
+            evaluations.append(eval_policy(policy, args.env, args.seed))
+            np.save(f"./results/DDPG_N{args.load_buffer_size}_{buffer_name}", evaluations)
+            print(f"Training iterations: {training_iters}")
+
+
 def test_vae_state(state_dim, action_dim, max_state, max_action, device, args):
     # For saving files
     setting = f"{args.env}_{args.seed}"
@@ -592,6 +648,9 @@ if __name__ == "__main__":
     parser.add_argument("--n_action", default=10, type=int)
     parser.add_argument("--n_action_execute", default=100, type=int)
 
+    parser.add_argument("--bc", action="store_true")  # If true, run BC
+    parser.add_argument("--ddpg", action="store_true")  # If true, run DDPG
+
     parser.add_argument("--n_checkpoint", default=0, type=int) # Number of checkpoints to save
     parser.add_argument("--load_multiple_policy", action="store_true") # Load multiple policy
 
@@ -652,5 +711,9 @@ if __name__ == "__main__":
             train_BEAR(state_dim, action_dim, max_action, device, args)
     elif args.state_vae:
         train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args)
+    elif args.bc:
+        train_BC(state_dim, action_dim, max_action, device, args)
+    elif args.ddpg:
+        train_offline_DDPG(state_dim, action_dim, max_action, device, args)
     else:
         train_BCQ(state_dim, action_dim, max_action, device, args)
