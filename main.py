@@ -387,7 +387,7 @@ def train_BC(state_dim, action_dim, max_action, device, args):
                                            batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BC_N{args.load_buffer_size}_phi{args.phi}_{buffer_name}", evaluations)
+        np.save(f"./results/BC_N{args.load_buffer_size}_{buffer_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
