@@ -130,7 +130,7 @@ def train_BEAR(state_dim, action_dim, max_action, device, args):
     # Initialize policy
     policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
                        version=args.version,
-                       lambda_=0.5,
+                       lambda_=0.0,
                        threshold=0.05,
                        mode=args.mode,
                        num_samples_match=args.num_samples_match,
@@ -171,7 +171,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
     # Initialize policy
     policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
                        version=args.version,
-                       lambda_=0.5,
+                       lambda_=0.0,
                        threshold=0.05,
                        mode=args.mode,
                        num_samples_match=args.num_samples_match,
