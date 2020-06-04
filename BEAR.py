@@ -61,7 +61,7 @@ class RegularActor(nn.Module):
 
         std_a = torch.exp(log_std_a)
         z = mean_a + std_a * torch.FloatTensor(np.random.normal(0, 1, size=(std_a.size()))).to(device)
-        return self.max_action * torch.tanh(z)
+        return (self.max_action * torch.tanh(z)).clamp(-0.999*self.max_action, 0.999*self.max_action)
 
     def sample_multiple(self, state, num_sample=10):
         a = F.relu(self.l1(state))
@@ -88,6 +88,7 @@ class RegularActor(nn.Module):
             raw_action = atanh(action)
         else:
             action = torch.tanh(raw_action)
+            action = action.clamp(-0.999*self.max_action, 0.999*self.max_action)
         log_normal = normal_dist.log_prob(raw_action)
         log_pis = log_normal.sum(-1)
         log_pis = log_pis - (1.0 - action ** 2).clamp(min=1e-6).log().sum(-1)
