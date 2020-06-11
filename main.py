@@ -7,7 +7,6 @@ import time
 
 import BCQ
 import DDPG
-import BEAR
 import utils
 
 
