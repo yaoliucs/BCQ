@@ -15,7 +15,7 @@ with the 5 random seeds.
 To run different offline algorithms, BCQ:
     python main.py --seed=$1
 MBS-QL:
-    python main.py --state_vae --qbackup --n_action=100 --phi=0.1 --seed=$1
+    python main.py --state_vae --qbackup --phi=0.1 --seed=$1
 DDPG:
     python main.py --ddpg --seed=$1
 BC:

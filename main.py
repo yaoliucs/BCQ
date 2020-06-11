@@ -119,108 +119,6 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
         replay_buffer.save(f"./buffers/{buffer_name}")
 
 
-# Train BEAR QL
-def train_BEAR(state_dim, action_dim, max_action, device, args):
-    print("Training BEAR\n")
-    setting = f"{args.env}_{args.seed}"
-    buffer_name = f"{args.buffer_name}_{setting}"
-    hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
-                 f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
-
-    # Initialize policy
-    policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
-                       version=args.version,
-                       lambda_=0.0,
-                       threshold=0.05,
-                       mode=args.mode,
-                       num_samples_match=args.num_samples_match,
-                       mmd_sigma=args.mmd_sigma,
-                       lagrange_thresh=args.lagrange_thresh,
-                       use_kl=(True if args.distance_type == "KL" else False),
-                       use_ensemble=(False if args.use_ensemble_variance == "False" else True),
-                       kernel_type=args.kernel_type,
-                       actor_lr=args.actor_lr)
-
-    # Load buffer
-    replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
-    replay_buffer.load(f"./buffers/Extended-{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
-
-    if args.actor_lr != 1e-3:
-        hp_setting += f"_lr{args.actor_lr}"
-    evaluations = []
-    episode_num = 0
-    done = True
-    training_iters = 0
-
-    while training_iters < args.max_timesteps:
-        pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-
-        evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEAR3_{hp_setting}_{buffer_name}", evaluations)
-
-        training_iters += args.eval_freq
-        print(f"Training iterations: {training_iters}")
-
-
-def train_BEAR_state(state_dim, action_dim, max_action, device, args):
-    print("Training BEARState\n")
-    setting = f"{args.env}_{args.seed}"
-    buffer_name = f"{args.buffer_name}_{setting}"
-    hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
-                 f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
-    # Initialize policy
-    policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
-                       version=args.version,
-                       lambda_=0.0,
-                       threshold=0.05,
-                       mode=args.mode,
-                       num_samples_match=args.num_samples_match,
-                       mmd_sigma=args.mmd_sigma,
-                       lagrange_thresh=args.lagrange_thresh,
-                       use_kl=(True if args.distance_type == "KL" else False),
-                       use_ensemble=(False if args.use_ensemble_variance == "False" else True),
-                       kernel_type=args.kernel_type,
-                       use_state_vae=args.state_vae,
-                       actor_lr=args.actor_lr,
-                       beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
-                       n_action=args.n_action, n_action_execute=args.n_action_execute,
-                       qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
-                       )
-
-    # Load buffer
-    replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
-    replay_buffer.load(f"./buffers/Extended-{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
-
-    evaluations = []
-    training_iters = 0
-
-    while training_iters < int(200000):
-        vae_loss = policy.train_vae(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-        print(f"Training iterations: {training_iters}")
-        print("VAE loss", vae_loss)
-        training_iters += args.eval_freq
-
-    if args.vae_type == "gumbel":
-        hp_setting += "_gsvae_2"
-    if args.pretrain_vae:
-        hp_setting += "_fixvae"
-    if args.qbackup:
-        hp_setting += f"_qbackup{args.qbackup_noise}"
-    if args.actor_lr != 1e-3:
-        hp_setting += f"_lr{args.actor_lr}"
-
-    training_iters = 0
-
-    while training_iters < args.max_timesteps:
-        pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
-
-        evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEARState3_{hp_setting}_{buffer_name}", evaluations)
-
-        training_iters += args.eval_freq
-        print(f"Training iterations: {training_iters}")
-
-
 # Trains BCQ offline
 def train_BCQ(state_dim, action_dim, max_action, device, args):
     # For saving files
@@ -645,7 +543,7 @@ if __name__ == "__main__":
     parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
     parser.add_argument("--beta_percentile", type=float, default=2)  #
     parser.add_argument("--pretrain_vae", action="store_true")  # If true, pre train action vae
-    parser.add_argument("--n_action", default=10, type=int)
+    parser.add_argument("--n_action", default=100, type=int)
     parser.add_argument("--n_action_execute", default=100, type=int)
 
     parser.add_argument("--bc", action="store_true")  # If true, run BC
@@ -704,11 +602,6 @@ if __name__ == "__main__":
         interact_with_environment(env, state_dim, action_dim, max_action, device, args)
     elif args.test_state_vae:
         test_vae_state(state_dim, action_dim, max_state, max_action, device, args)
-    elif args.bear:
-        if args.state_vae:
-            train_BEAR_state(state_dim, action_dim, max_action, device, args)
-        else:
-            train_BEAR(state_dim, action_dim, max_action, device, args)
     elif args.state_vae:
         train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args)
     elif args.bc:
