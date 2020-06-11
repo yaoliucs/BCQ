@@ -1,0 +1,24 @@
+Requirements:
+    MuJoCo >= 150
+    mujoco-py
+    pytorch
+    numpy
+
+To generate the behavior policy run:
+    python main.py --train_behavioral --buffer_name=Final --gaussian_std=0.5 --seed=$1
+with 15 random seeds and pick the best 5 results for behavior policy.
+
+To generate the buffer, run:
+    python sanity_check.py --generate_buffer --buffer_name=Extended-Imperfect --gaussian_std=0.3 --rand_action_p=0.3 --seed=$1
+with the 5 random seeds.
+
+To run different offline algorithms, BCQ:
+    python main.py --seed=$1
+MBS-QL:
+    python main.py --state_vae --qbackup --n_action=100 --phi=0.1 --seed=$1
+DDPG:
+    python main.py --ddpg --seed=$1
+BC:
+    python main.py --bc --seed=$1
+
+It will generate .npy files in ./results folder, logging the evaluate scores.

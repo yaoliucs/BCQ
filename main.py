@@ -640,10 +640,10 @@ if __name__ == "__main__":
     parser.add_argument('--use_ensemble_variance', default='False', type=str)  # Whether to use ensemble variance or not
 
     parser.add_argument("--qbackup", action="store_true")  # If true, use q learning backup instead of actor critic algorithm
-    parser.add_argument("--qbackup_noise", type=float, default=0.0)
+    parser.add_argument("--qbackup_noise", type=float, default=0.15)
     parser.add_argument("--test_critic_elbo", default=True)  # If true, only test vae
     parser.add_argument("--automatic_beta", action="store_true")  # If true, use percentile for beta
-    parser.add_argument("--beta_percentile", type=float, default=1.5)  #
+    parser.add_argument("--beta_percentile", type=float, default=2)  #
     parser.add_argument("--pretrain_vae", action="store_true")  # If true, pre train action vae
     parser.add_argument("--n_action", default=10, type=int)
     parser.add_argument("--n_action_execute", default=100, type=int)

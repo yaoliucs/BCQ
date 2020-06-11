@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from VAE import VAE_gumbel
-
 
 def add_gaussian_noise(actions, max_action, std):
     return (
