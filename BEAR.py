@@ -57,6 +57,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
+        # mean_a = mean_a.clamp(-1e4,1e4)
         log_std_a = self.log_std(a)
 
         std_a = torch.exp(log_std_a)
@@ -67,6 +68,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
+        # mean_a = mean_a.clamp(-1e4, 1e4)
         log_std_a = self.log_std(a)
 
         std_a = torch.exp(log_std_a)
@@ -81,6 +83,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
+        # mean_a = mean_a.clamp(-1e4, 1e4)
         log_std_a = self.log_std(a)
         std_a = torch.exp(log_std_a)
         normal_dist = td.Normal(loc=mean_a, scale=std_a, validate_args=True)
@@ -559,14 +562,19 @@ class BEAR(object):
                 param_norm = p.grad.data.norm(2)
                 norm += param_norm.item() ** 2
             norm = norm ** (1. / 2)
-            # print(it, actor_loss.item(),
-            #       critic_qs.mean().item(),
-            #       std_q.mean().item(),
-            #       self.log_lagrange2.exp().mean().item(),
-            #       mmd_loss.mean().item())
+            print("\nIteration:", it,
+                  "\nactor_loss:", actor_loss.item(),
+                  "\ngradient norm:", norm,
+                  "\ncritic_qs.mean():", critic_qs.mean().item(),
+                  "\nstd_q.mean():", std_q.mean().item(),
+                  "\nlog_lagrange2.exp().mean():", self.log_lagrange2.exp().mean().item(),
+                  "\nmmd_loss.mean():", mmd_loss.mean().item(),
+                  "\nactor_actions.max():", actor_actions.max()
+                  )
             if np.isnan(norm):
                 print("ValueError: nan in gradients. Ending current train.")
-                self.actor_optimizer.zero_grad()
+                raise AssertionError
+                # self.actor_optimizer.zero_grad()
             else:
                 self.actor_optimizer.step()
 

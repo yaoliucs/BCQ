@@ -630,7 +630,7 @@ if __name__ == "__main__":
                         type=str)  # Basically whether to do min(Q), max(Q), mean(Q)
     parser.add_argument('--mode', default='hardcoded', #hardcoded
                         type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
-    parser.add_argument('--num_samples_match', default=10, type=int)  # number of samples to do matching in MMD
+    parser.add_argument('--num_samples_match', default=5, type=int)  # number of samples to do matching in MMD
     parser.add_argument('--mmd_sigma', default=50.0, type=float)  # The bandwidth of the MMD kernel parameter default 10
     parser.add_argument('--kernel_type', default='gaussian',
                         type=str)  # kernel type for MMD ("laplacian" or "gaussian")
