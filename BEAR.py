@@ -57,7 +57,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
-        mean_a = mean_a.clamp(-1e4,1e4)
+        #mean_a = mean_a.clamp(-1e4,1e4)
         log_std_a = self.log_std(a)
 
         std_a = torch.exp(log_std_a)
@@ -68,7 +68,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
-        mean_a = mean_a.clamp(-1e4, 1e4)
+        #mean_a = mean_a.clamp(-1e4, 1e4)
         log_std_a = self.log_std(a)
 
         std_a = torch.exp(log_std_a)
@@ -83,7 +83,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
-        mean_a = mean_a.clamp(-1e4, 1e4)
+        #mean_a = mean_a.clamp(-1e4, 1e4)
         log_std_a = self.log_std(a)
         std_a = torch.exp(log_std_a)
         normal_dist = td.Normal(loc=mean_a, scale=std_a, validate_args=True)
