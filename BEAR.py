@@ -567,7 +567,7 @@ class BEAR(object):
                   "\ngradient norm:", norm,
                   "\ncritic_qs.mean():", critic_qs.mean().item(),
                   "\nstd_q.mean():", std_q.mean().item(),
-                  "\nlog_lagrange2.exp().mean():", self.log_lagrange2.exp().mean().item(),
+                  #"\nlog_lagrange2.exp().mean():", self.log_lagrange2.exp().mean().item(),
                   "\nmmd_loss.mean():", mmd_loss.mean().item(),
                   "\nactor_actions.max():", actor_actions.max()
                   )
