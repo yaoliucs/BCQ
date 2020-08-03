@@ -562,14 +562,14 @@ class BEAR(object):
                 param_norm = p.grad.data.norm(2)
                 norm += param_norm.item() ** 2
             norm = norm ** (1. / 2)
-            print("\nIteration:", it,
-                  "\nactor_loss:", actor_loss.item(),
-                  "\ngradient norm:", norm,
-                  "\ncritic_qs.mean():", critic_qs.mean().item(),
-                  "\nstd_q.mean():", std_q.mean().item(),
-                  "\nmmd_loss.mean():", mmd_loss.mean().item(),
-                  "\nactor_actions.max():", actor_actions.max()
-                  )
+            # print("\nIteration:", it,
+            #       "\nactor_loss:", actor_loss.item(),
+            #       "\ngradient norm:", norm,
+            #       "\ncritic_qs.mean():", critic_qs.mean().item(),
+            #       "\nstd_q.mean():", std_q.mean().item(),
+            #       "\nmmd_loss.mean():", mmd_loss.mean().item(),
+            #       "\nactor_actions.max():", actor_actions.max()
+            #       )
             if np.isnan(norm):
                 print("ValueError: nan in gradients. Ending current train.")
                 raise AssertionError
