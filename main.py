@@ -20,7 +20,11 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
     # Initialize and load policy
     policy = DDPG.DDPG(state_dim, action_dim, max_action, device)  # , args.discount, args.tau)
     if args.generate_buffer:
-        policy.load(f"./models/behavioral_{setting}")
+        if args.policy_seed != args.seed:
+            policy_setting = f"{args.env}_{args.policy_seed}"
+        else:
+            policy_setting = setting
+        policy.load(f"./models/behavioral_{policy_setting}")
     if args.load_multiple_policy:
         chk = 1
         policy.load(f"./models/behavioral_{setting}_chk{chk}")
@@ -598,6 +602,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", default="Hopper-v3")  # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
+    parser.add_argument("--policy_seed", default=-1, type=int) # seed of behavior policy, if we are using a different seed with behavior policy
     parser.add_argument("--buffer_name", default="Imperfect")  # Prepends name to filename "Final/Imitation/Imperfect"
     parser.add_argument("--eval_freq", default=1e4, type=float)  # How often (time steps) we evaluate
     parser.add_argument("--max_timesteps", default=1e6,
@@ -686,6 +691,9 @@ if __name__ == "__main__":
         os.makedirs("./buffers")
 
     env = gym.make(args.env)
+
+    if args.policy_seed == -1:
+        args.policy_seed = args.seed
 
     env.seed(args.seed)
     torch.manual_seed(args.seed)
