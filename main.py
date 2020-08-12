@@ -370,8 +370,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
 
 def train_BC(state_dim, action_dim, max_action, device, args):
     # For saving files
-    setting = f"{args.env}_{args.seed}"
-    buffer_name = f"{args.buffer_name}_{setting}"
+    setting = f"{args.env}_{args.train_seed}"
+    log_name = f"{args.buffer_name}_{setting}"
 
     # Initialize policy
     policy = BCQ.BCQ_state(state_dim, action_dim, None, max_action, device, args.discount, args.tau, args.lmbda, phi=0)
@@ -379,7 +379,7 @@ def train_BC(state_dim, action_dim, max_action, device, args):
     # Load buffer
     replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
                                                env.init_qvel.shape[0], device)
-    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{args.env}_{args.seed}", args.load_buffer_size)
 
     evaluations = []
     episode_num = 0
@@ -391,7 +391,7 @@ def train_BC(state_dim, action_dim, max_action, device, args):
                                            batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BC_N{args.load_buffer_size}_{buffer_name}", evaluations)
+        np.save(f"./results/BC_N{args.load_buffer_size}_{log_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
@@ -399,8 +399,8 @@ def train_BC(state_dim, action_dim, max_action, device, args):
 
 def train_offline_DDPG(state_dim, action_dim, max_action, device, args):
     # For saving files
-    setting = f"{args.env}_{args.seed}"
-    buffer_name = f"{args.buffer_name}_{setting}"
+    setting = f"{args.env}_{args.train_seed}"
+    log_name = f"{args.buffer_name}_{setting}"
 
     # Initialize policy
     policy = DDPG.DDPG(state_dim, action_dim, max_action, device)  # , args.discount, args.tau)
@@ -408,7 +408,7 @@ def train_offline_DDPG(state_dim, action_dim, max_action, device, args):
     # Load buffer
     replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
                                                env.init_qvel.shape[0], device)
-    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{args.env}_{args.seed}", args.load_buffer_size)
 
     evaluations = []
     episode_num = 0
@@ -420,7 +420,7 @@ def train_offline_DDPG(state_dim, action_dim, max_action, device, args):
         training_iters += 1
         if training_iters % args.eval_freq == 0:
             evaluations.append(eval_policy(policy, args.env, args.seed))
-            np.save(f"./results/DDPG_N{args.load_buffer_size}_{buffer_name}", evaluations)
+            np.save(f"./results/DDPG_N{args.load_buffer_size}_{log_name}", evaluations)
             print(f"Training iterations: {training_iters}")
 
 
