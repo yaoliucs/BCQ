@@ -255,8 +255,8 @@ def train_BCQ(state_dim, action_dim, max_action, device, args):
 
 def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     # For saving files
-    setting = f"{args.env}_{args.seed}"
-    buffer_name = f"{args.buffer_name}_{setting}"
+    setting = f"{args.env}_{args.train_seed}"
+    log_name = f"{args.buffer_name}_{setting}"
 
     print("=== Start Train ===\n")
     print("Args:\n",args)
@@ -277,7 +277,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
     # replay_buffer.load(f"./buffers/{buffer_name}", args.load_buffer_size)
     replay_buffer = utils.ExtendedReplayBuffer(state_dim, action_dim, env.init_qpos.shape[0],
                                                env.init_qvel.shape[0], device)
-    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{setting}", args.load_buffer_size)
+    replay_buffer.load(f"./buffers/Extended-{args.buffer_name}_{args.env}_{args.seed}", args.load_buffer_size)
 
     evaluations = []
     filter_scores = []
@@ -311,7 +311,7 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         policy.beta_c = beta_c
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
                      f"_{args.score_activation}_k{str(args.sigmoid_k)}_cpercentile{args.beta_percentile}"
-        np.save(f"./results/BCQState_{hp_setting}_{buffer_name}_vaescore", test_loss)
+        np.save(f"./results/BCQState_{hp_setting}_{log_name}_vaescore", test_loss)
         print("Test vae",args.beta_percentile,"percentile:", beta_c)
     else:
         hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
@@ -327,45 +327,45 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
         hp_setting += f"_lr{args.actor_lr}"
 
     if args.test_critic_elbo:
-        if not os.path.exists(f"./results/SCheck_{hp_setting}_{buffer_name}"):
-            os.mkdir(f"./results/SCheck_{hp_setting}_{buffer_name}")
+        if not os.path.exists(f"./results/SCheck_{hp_setting}_{log_name}"):
+            os.mkdir(f"./results/SCheck_{hp_setting}_{log_name}")
 
     # Start training
-    print("Log files at:", f"./results/BCQState_{hp_setting}_{buffer_name}")
+    print("Log files at:", f"./results/BCQState_{hp_setting}_{log_name}")
     training_iters = 0
     while training_iters < args.max_timesteps:
         score = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
         evaluations.append(eval_policy(policy, args.env, args.seed, eval_episodes=20))
-        np.save(f"./results/BCQState_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/BCQState_{hp_setting}_{log_name}", evaluations)
 
         filter_scores = np.append(filter_scores, score)
-        np.save(f"./results/BCQState_{hp_setting}_{buffer_name}_filter", filter_scores)
+        np.save(f"./results/BCQState_{hp_setting}_{log_name}_filter", filter_scores)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
 
-        if args.test_critic_elbo and (training_iters % 100000 == 0):
-            init_state, init_action, init_qp, init_qv = sample_initial_state_action(policy, 100, args, policy.device)
-            score, value, bsl_value, critic, bsl_critic \
-                = evaluate_filter_and_critic(policy, init_state, init_action, init_qp, init_qv, args)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_score", score)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_value", value)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_bsl_value", bsl_value)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_critic", critic)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_bsl_critic", bsl_critic)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_qpos", init_qp.cpu().numpy())
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_init_qvel", init_qv.cpu().numpy())
-
-            state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
-            score, value, bsl_value, critic, bsl_critic \
-                = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_score", score)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_value", value)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_bsl_value", bsl_value)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_critic", critic)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_bsl_critic", bsl_critic)
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qpos", qpos.cpu().numpy())
-            np.save(f"./results/SCheck_{hp_setting}_{buffer_name}/{training_iters}_qvel", qvel.cpu().numpy())
+        # if args.test_critic_elbo and (training_iters % 100000 == 0):
+        #     init_state, init_action, init_qp, init_qv = sample_initial_state_action(policy, 100, args, policy.device)
+        #     score, value, bsl_value, critic, bsl_critic \
+        #         = evaluate_filter_and_critic(policy, init_state, init_action, init_qp, init_qv, args)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_score", score)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_value", value)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_bsl_value", bsl_value)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_critic", critic)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_bsl_critic", bsl_critic)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_qpos", init_qp.cpu().numpy())
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_init_qvel", init_qv.cpu().numpy())
+        #
+        #     state, action, next_state, reward, not_done, qpos, qvel = replay_buffer.sample_more(100)
+        #     score, value, bsl_value, critic, bsl_critic \
+        #         = evaluate_filter_and_critic(policy, state, action, qpos, qvel, args)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_score", score)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_value", value)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_bsl_value", bsl_value)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_critic", critic)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_bsl_critic", bsl_critic)
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_qpos", qpos.cpu().numpy())
+        #     np.save(f"./results/SCheck_{hp_setting}_{log_name}/{training_iters}_qvel", qvel.cpu().numpy())
 
 
 def train_BC(state_dim, action_dim, max_action, device, args):
@@ -603,6 +603,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", default="Hopper-v3")  # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--policy_seed", default=-1, type=int) # seed of behavior policy, if we are using a different seed with behavior policy
+    parser.add_argument("--train_seed", default=-1, type=int)
     parser.add_argument("--buffer_name", default="Imperfect")  # Prepends name to filename "Final/Imitation/Imperfect"
     parser.add_argument("--eval_freq", default=1e4, type=float)  # How often (time steps) we evaluate
     parser.add_argument("--max_timesteps", default=1e6,
@@ -694,10 +695,17 @@ if __name__ == "__main__":
 
     if args.policy_seed == -1:
         args.policy_seed = args.seed
+    if args.train_seed == -1:
+        args.train_seed = args.seed
 
     env.seed(args.seed)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
+
+    if args.train_seed != args.seed:
+        env.seed(args.seed)
+        torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
