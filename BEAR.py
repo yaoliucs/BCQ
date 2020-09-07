@@ -57,7 +57,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
-        mean_a = mean_a.clamp(-20,20)
+        #mean_a = mean_a.clamp(-20,20)
         log_std_a = self.log_std(a)
 
         std_a = torch.exp(log_std_a)
@@ -68,7 +68,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
-        mean_a = mean_a.clamp(-20, 20)
+        #mean_a = mean_a.clamp(-20, 20)
         log_std_a = self.log_std(a)
 
         std_a = torch.exp(log_std_a)
@@ -83,7 +83,7 @@ class RegularActor(nn.Module):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
         mean_a = self.mean(a)
-        mean_a = mean_a.clamp(-20, 20)
+        #mean_a = mean_a.clamp(-20, 20)
         log_std_a = self.log_std(a)
         std_a = torch.exp(log_std_a)
         normal_dist = td.Normal(loc=mean_a, scale=std_a, validate_args=True)
@@ -432,6 +432,18 @@ class BEAR(object):
             vae_loss.backward()
             self.vae2_optimizer.step()
         return np.mean(scores)
+
+    def test_vae(self, replay_buffer, batch_size=1000):
+        state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
+        recon, mean, std = self.vae2(next_state)
+        recon_loss = ((recon - next_state) ** 2).mean(dim=1)
+        KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+        if self.score_activation == "KL":
+            vae_loss = 0.5 * KL_loss
+        else:
+            vae_loss = recon_loss + 0.5 * KL_loss
+
+        return -vae_loss.detach().cpu().numpy()
 
     def train(self, replay_buffer, iterations, batch_size=100, discount=0.99, tau=0.005):
         for it in range(iterations):

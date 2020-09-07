@@ -125,10 +125,7 @@ def interact_with_environment(env, state_dim, action_dim, max_action, device, ar
 
 def train_BEAR_state(state_dim, action_dim, max_action, device, args):
     print("Training BEARState\n")
-    setting = f"{args.env}_{args.seed}"
-    buffer_name = f"{args.buffer_name}_{setting}"
-    hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
-                 f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+    log_name = f"{args.dataset}_{args.seed}"
     # Initialize policy
     policy = BEAR.BEAR(2, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=False,
                        version=args.version,
@@ -150,7 +147,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
 
     # Load buffer
     replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
-    replay_buffer.load(f"./buffers/Extended-{buffer_name}", args.load_buffer_size, bootstrap_dim=4)
+    replay_buffer.load(f"./buffers/{args.dataset}", args.load_buffer_size)
 
     evaluations = []
     training_iters = 0
@@ -161,10 +158,18 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
         print("VAE loss", vae_loss)
         training_iters += args.eval_freq
 
-    if args.vae_type == "gumbel":
-        hp_setting += "_gsvae_2"
-    if args.pretrain_vae:
-        hp_setting += "_fixvae"
+    if args.automatic_beta:  # args.automatic_beta:
+        test_loss = policy.test_vae(replay_buffer, batch_size=100000)
+        beta_c = np.percentile(test_loss, args.beta_percentile)
+        policy.beta_c = beta_c
+        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
+                     f"_{args.score_activation}_k{str(args.sigmoid_k)}_cpercentile{args.beta_percentile}"
+        np.save(f"./results/BCQState_{hp_setting}_{log_name}_vaescore", test_loss)
+        print("Test vae",args.beta_percentile,"percentile:", beta_c)
+    else:
+        hp_setting = f"N{args.load_buffer_size}_phi{args.phi}_n{args.n_action}_ne{args.n_action_execute}" \
+                     f"_{args.score_activation}_k{str(args.sigmoid_k)}_betac{str(args.beta_c)}_betaa{str(args.beta_a)}"
+
     if args.qbackup:
         hp_setting += f"_qbackup{args.qbackup_noise}"
     if args.actor_lr != 1e-3:
@@ -176,7 +181,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
         pol_vals = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size)
 
         evaluations.append(eval_policy(policy, args.env, args.seed))
-        np.save(f"./results/BEARState3_{hp_setting}_{buffer_name}", evaluations)
+        np.save(f"./results/BEARState_{hp_setting}_{log_name}", evaluations)
 
         training_iters += args.eval_freq
         print(f"Training iterations: {training_iters}")
