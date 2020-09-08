@@ -147,7 +147,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
 
     # Load buffer
     replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
-    replay_buffer.load(f"./buffers/{args.dataset}", args.load_buffer_size)
+    replay_buffer.load(f"./buffers/{args.dataset}", args.load_buffer_size, bootstrap_dim=4)
 
     evaluations = []
     training_iters = 0
