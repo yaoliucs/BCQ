@@ -245,7 +245,7 @@ class BCQ_state(object):
                  phi=0.05,
                  n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0, score_activation="sigmoid",
                  actor_lr=1e-3,
-                 vae_type="vanilla", beta_a=0.0, beta_c=-0.4, sigmoid_k=100, pretrain_vae=False):
+                 vae_type="vanilla", beta_a=0.0, beta_c=-0.4, sigmoid_k=100, pretrain_vae=False, vmin=0):
         self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
         self.actor_target = copy.deepcopy(self.actor)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
@@ -282,6 +282,7 @@ class BCQ_state(object):
         self.qbackup = qbackup
         self.qbackup_noise = qbackup_noise
         self.score_activation = score_activation
+        self.vmin = vmin
 
     def select_action(self, state):
         with torch.no_grad():
@@ -421,7 +422,7 @@ class BCQ_state(object):
                 else:
                     score = 1
 
-                target_Q = reward + not_done * score * self.discount * target_Q
+                target_Q = reward + not_done * score * self.discount * target_Q + done * discount * (1 - score) * self.vmin
 
             current_Q1, current_Q2 = self.critic(state, action)
             critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)

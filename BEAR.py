@@ -294,7 +294,7 @@ class BEAR(object):
                  threshold=0.05, mode='auto', num_samples_match=10, mmd_sigma=10.0, actor_lr=1e-3,
                  lagrange_thresh=10.0, use_kl=False, use_ensemble=True, kernel_type='laplacian', use_state_vae=False,
                  n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0,
-                 beta_a=0.0, beta_c=0.0, sigmoid_k=100):
+                 beta_a=0.0, beta_c=0.0, sigmoid_k=100, vmin = 0):
         latent_dim = action_dim * 2
         self.actor = RegularActor(state_dim, action_dim, max_action).to(device)
         self.actor_target = RegularActor(state_dim, action_dim, max_action).to(device)
@@ -334,6 +334,7 @@ class BEAR(object):
         self.n_action_execute = n_action_execute
         self.qbackup = qbackup
         self.qbackup_noise = qbackup_noise
+        self.vmin = vmin
 
         if self.mode == 'auto':
             # Use lagrange multipliers on the constraint if set to auto mode
@@ -485,7 +486,7 @@ class BEAR(object):
                 # Soft Clipped Double Q-learning
                 target_Q = 0.75 * target_Qs.min(0)[0] + 0.25 * target_Qs.max(0)[0]
                 target_Q = target_Q.view(batch_size, -1).max(1)[0].view(-1, 1)
-                target_Q = reward + done * discount * score * target_Q
+                target_Q = reward + done * discount * score * target_Q + done * discount * (1 - score) * self.vmin
 
             current_Qs = self.critic(state, action, with_var=False)
             if self.use_bootstrap:

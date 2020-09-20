@@ -189,6 +189,7 @@ def train_BEAR_state(state_dim, action_dim, max_action, device, args):
                        beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
                        n_action=args.n_action, n_action_execute=args.n_action_execute,
                        qbackup=args.qbackup, qbackup_noise=args.qbackup_noise,
+                       vmin=args.vmin,
                        )
 
     # Load buffer
@@ -270,7 +271,8 @@ def train_BCQ_state(state_dim, action_dim, max_state, max_action, device, args):
                            actor_lr=args.actor_lr,
                            vae_type=args.vae_type,
                            beta_a=args.beta_a, beta_c=args.beta_c, sigmoid_k=args.sigmoid_k,
-                           pretrain_vae=args.pretrain_vae)
+                           pretrain_vae=args.pretrain_vae,
+                           vmin=args.vmin,)
 
     # Load buffer
     # replay_buffer = utils.ReplayBuffer(state_dim, action_dim, device)
@@ -630,6 +632,7 @@ if __name__ == "__main__":
     parser.add_argument("--sigmoid_k", default=100, type=float)
     parser.add_argument("--load_buffer_size", default=100000, type=int)  # number of samples to load into the buffer
     parser.add_argument("--actor_lr", default=1e-3, type=float) # learning rate of actor
+    parser.add_argument("--vmin", default=0, type=float)  # learning rate of actor
     # BEAR parameter
     parser.add_argument("--bear", action="store_true")  # If true, use BEAR
     parser.add_argument("--version", default='0',
@@ -692,6 +695,10 @@ if __name__ == "__main__":
         os.makedirs("./buffers")
 
     env = gym.make(args.env)
+    if args.env == "HalfCheetah-v2":
+        args.vmin = -591
+    if args.env == "Walker2d-v2":
+        args.vmin = -16
 
     if args.policy_seed == -1:
         args.policy_seed = args.seed
