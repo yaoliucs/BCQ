@@ -422,7 +422,7 @@ class BCQ_state(object):
                 else:
                     score = 1
 
-                target_Q = reward + not_done * score * self.discount * target_Q + done * discount * (1 - score) * self.vmin
+                target_Q = reward + not_done * score * self.discount * target_Q + not_done * self.discount * (1 - score) * self.vmin
 
             current_Q1, current_Q2 = self.critic(state, action)
             critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
