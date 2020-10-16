@@ -640,8 +640,8 @@ if __name__ == "__main__":
     parser.add_argument('--mode', default='hardcoded', #hardcoded
                         type=str)  # Whether to do automatic lagrange dual descent or manually tune coefficient of the MMD loss (prefered "auto")
     parser.add_argument('--num_samples_match', default=5, type=int)  # number of samples to do matching in MMD
-    parser.add_argument('--mmd_sigma', default=50.0, type=float)  # The bandwidth of the MMD kernel parameter default 10
-    parser.add_argument('--kernel_type', default='gaussian',
+    parser.add_argument('--mmd_sigma', default=20.0, type=float)  # The bandwidth of the MMD kernel parameter default 10
+    parser.add_argument('--kernel_type', default='laplacian',
                         type=str)  # kernel type for MMD ("laplacian" or "gaussian")
     parser.add_argument('--lagrange_thresh', default=10.0,
                         type=float)  # What is the threshold for the lagrange multiplier
