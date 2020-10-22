@@ -292,9 +292,9 @@ class BEAR(object):
     def __init__(self, num_qs, state_dim, action_dim, max_action, delta_conf=0.1, use_bootstrap=True, version=0,
                  lambda_=0.4,
                  threshold=0.05, mode='auto', num_samples_match=10, mmd_sigma=10.0, actor_lr=1e-3,
-                 lagrange_thresh=10.0, use_kl=False, use_ensemble=True, kernel_type='laplacian', use_state_vae=False,
-                 n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0,
-                 beta_a=0.0, beta_c=0.0, sigmoid_k=100, vmin = 0):
+                 lagrange_thresh=10.0, use_kl=False, use_ensemble=True, kernel_type='laplacian', use_state_filter=False,
+                 n_action=100, n_action_execute=100, backup="QL", ql_noise=0.0,
+                 beta=0.0, vmin = 0):
         latent_dim = action_dim * 2
         self.actor = RegularActor(state_dim, action_dim, max_action).to(device)
         self.actor_target = RegularActor(state_dim, action_dim, max_action).to(device)
@@ -325,15 +325,13 @@ class BEAR(object):
         self.use_ensemble = use_ensemble
         self.kernel_type = kernel_type
 
-        # state vae
-        self.use_state_vae = use_state_vae
-        self.beta_a = beta_a
-        self.beta_c = beta_c
-        self.sigmoid_k = sigmoid_k
+        # state filter
+        self.use_state_filter = use_state_filter
+        self.beta = beta
         self.n_action = n_action
         self.n_action_execute = n_action_execute
-        self.qbackup = qbackup
-        self.qbackup_noise = qbackup_noise
+        self.backup = backup
+        self.ql_noise = ql_noise
         self.vmin = vmin
 
         if self.mode == 'auto':
@@ -342,7 +340,7 @@ class BEAR(object):
             self.log_lagrange2 = torch.randn((), requires_grad=True, device=device)
             self.lagrange2_opt = torch.optim.Adam([self.log_lagrange2, ], lr=1e-3)
 
-        if self.use_state_vae:
+        if self.use_state_filter:
             self.vae2 = VAE_state(state_dim, state_dim * 2, None, device).to(device)
             self.vae2_optimizer = torch.optim.Adam(self.vae2.parameters())
 
@@ -467,19 +465,19 @@ class BEAR(object):
 
                 # Compute value of perturbed actions sampled from the VAE
 
-                if self.qbackup:
+                if self.backup == "QL":
                     target_Qs = self.critic_target(next_state, add_gaussian_noise(self.vae.decode(next_state),
                                                                                   self.max_action,
-                                                                                  self.qbackup_noise))
+                                                                                  self.ql_noise))
                 else:
                     target_Qs = self.critic_target(state_rep, self.actor_target(state_rep))
 
-                if self.use_state_vae and self.beta_c < 0:
+                if self.use_state_filter and self.beta < 0:
                     recon, mean, std = self.vae2(state_rep)
                     score = - ((recon - state_rep) ** 2).mean(dim=1)
                     score += 0.5 * 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
                     score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
-                    score = torch.sigmoid(self.sigmoid_k * (score - self.beta_c))
+                    score = torch.sigmoid(100 * (score - self.beta))
                 else:
                     score = 1
 

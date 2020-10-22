@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from VAE import VAE_gumbel
-
 
 def add_gaussian_noise(actions, max_action, std):
     return (
@@ -240,12 +238,10 @@ class BCQ(object):
                 target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
 
-class BCQ_state(object):
+class PQL_BCQ(object):
     def __init__(self, state_dim, action_dim, max_state, max_action, device, discount=0.99, tau=0.005, lmbda=0.75,
-                 phi=0.05,
-                 n_action=10, n_action_execute=10, qbackup=False, qbackup_noise=0.0, score_activation="sigmoid",
-                 actor_lr=1e-3,
-                 vae_type="vanilla", beta_a=0.0, beta_c=-0.4, sigmoid_k=100, pretrain_vae=False, vmin=0):
+                 phi=0.05, n_action=100, n_action_execute=100, backup="QL", ql_noise=0.0,
+                 actor_lr=1e-3, beta=-0.4, vmin=0):
         self.actor = Actor(state_dim, action_dim, max_action, phi).to(device)
         self.actor_target = copy.deepcopy(self.actor)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
@@ -257,13 +253,7 @@ class BCQ_state(object):
         self.vae = VAE(state_dim, action_dim, action_dim * 2, max_action, device).to(device)
         self.vae_optimizer = torch.optim.Adam(self.vae.parameters())
 
-        self.discrete_type = vae_type
-        if vae_type == "vanilla":
-            self.vae2 = VAE_state(state_dim, state_dim * 2, max_state, device).to(device)
-        elif vae_type == "gumbel":
-            self.vae2 = VAE_gumbel(state_dim, 2, 100, device).to(device)
-        else:
-            raise NotImplementedError
+        self.vae2 = VAE_state(state_dim, state_dim * 2, max_state, device).to(device)
         self.vae2_optimizer = torch.optim.Adam(self.vae2.parameters())
 
         self.max_state = max_state
@@ -273,15 +263,11 @@ class BCQ_state(object):
         self.tau = tau
         self.lmbda = lmbda
         self.device = device
-        self.beta_a = beta_a
-        self.beta_c = beta_c
-        self.sigmoid_k = sigmoid_k
-        self.pretrain_vae = pretrain_vae
+        self.beta = beta
         self.n_action = n_action
         self.n_action_execute = n_action_execute
-        self.qbackup = qbackup
-        self.qbackup_noise = qbackup_noise
-        self.score_activation = score_activation
+        self.backup = backup
+        self.ql_noise = ql_noise
         self.vmin = vmin
 
     def select_action(self, state):
@@ -294,31 +280,24 @@ class BCQ_state(object):
 
     def train_vae(self, replay_buffer, iterations, batch_size=100):
         scores = []
-
         for it in range(iterations):
             # Sample replay buffer / batch
             state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
 
-            if self.discrete_type == "vanilla":
-                recon, mean, std = self.vae2(state)
-                recon_loss = F.mse_loss(recon, state)
-                KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
-                vae_loss = recon_loss + 0.5 * KL_loss
-            elif self.discrete_type == "gumbel":
-                vae_loss = self.vae2.elbo_loss(state).mean()
+            recon, mean, std = self.vae2(state)
+            recon_loss = F.mse_loss(recon, state)
+            KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+            vae_loss = recon_loss + 0.5 * KL_loss
             scores.append(vae_loss.item())
 
             self.vae2_optimizer.zero_grad()
             vae_loss.backward()
             self.vae2_optimizer.step()
 
-            if self.discrete_type == "vanilla":
-                recon, mean, std = self.vae2(next_state)
-                recon_loss = F.mse_loss(recon, next_state)
-                KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
-                vae_loss = recon_loss + 0.5 * KL_loss
-            elif self.discrete_type == "gumbel":
-                vae_loss = self.vae2.elbo_loss(next_state).mean()
+            recon, mean, std = self.vae2(next_state)
+            recon_loss = F.mse_loss(recon, next_state)
+            KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+            vae_loss = recon_loss + 0.5 * KL_loss
             scores.append(vae_loss.item())
 
             self.vae2_optimizer.zero_grad()
@@ -342,22 +321,10 @@ class BCQ_state(object):
 
     def test_vae(self, replay_buffer, batch_size=1000):
         state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
-        if self.discrete_type == "vanilla":
-            recon, mean, std = self.vae2(next_state)
-            recon_loss = ((recon - next_state) ** 2).mean(dim=1)
-            KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
-            if self.score_activation == "KL":
-                vae_loss = 0.5 * KL_loss
-            else:
-                vae_loss = recon_loss + 0.5 * KL_loss
-        elif self.discrete_type == "gumbel":
-            if self.score_activation == "KL":
-                vae_loss = self.vae2.latent_KL(next_state)
-            elif self.score_activation == "frequency":
-                vae_loss = -self.vae2.frequency_score(next_state)
-            else:
-                vae_loss = self.vae2.elbo_loss(next_state)
-
+        recon, mean, std = self.vae2(next_state)
+        recon_loss = ((recon - next_state) ** 2).mean(dim=1)
+        KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+        vae_loss = recon_loss + 0.5 * KL_loss
         return -vae_loss.detach().cpu().numpy()
 
     def train(self, replay_buffer, iterations, batch_size=100):
@@ -368,16 +335,15 @@ class BCQ_state(object):
             # Sample replay buffer / batch
             state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
 
-            if not self.pretrain_vae:
-                # Variational Auto-Encoder Training
-                recon, mean, std = self.vae(state, action)
-                recon_loss = F.mse_loss(recon, action)
-                KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
-                vae_loss = recon_loss + 0.5 * KL_loss
+            # Training action vae
+            recon, mean, std = self.vae(state, action)
+            recon_loss = F.mse_loss(recon, action)
+            KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+            vae_loss = recon_loss + 0.5 * KL_loss
 
-                self.vae_optimizer.zero_grad()
-                vae_loss.backward()
-                self.vae_optimizer.step()
+            self.vae_optimizer.zero_grad()
+            vae_loss.backward()
+            self.vae_optimizer.step()
 
             # Critic Training
             with torch.no_grad():
@@ -385,11 +351,11 @@ class BCQ_state(object):
                 next_state = torch.repeat_interleave(next_state, self.n_action, 0)
 
                 # Compute value of perturbed actions sampled from the VAE
-                if self.qbackup:
+                if self.backup == "QL":
                     target_Q1, target_Q2 = self.critic_target(next_state,
                                                               add_gaussian_noise(self.vae.decode(next_state),
                                                                                  self.max_action,
-                                                                                 self.qbackup_noise))
+                                                                                 self.ql_noise))
                 else:
                     target_Q1, target_Q2 = self.critic_target(next_state,
                                                               self.actor_target(next_state,
@@ -400,28 +366,16 @@ class BCQ_state(object):
                                                                                                         target_Q2)
                 # Take max over each action sampled from the VAE
                 target_Q = target_Q.reshape(batch_size, -1).max(1)[0].reshape(-1, 1)
-                if self.beta_c < 0:
-                    if self.discrete_type == "vanilla":
-                        recon, mean, std = self.vae2(next_state)
-                        recon_loss = ((recon - next_state) ** 2).mean(dim=1)
-                        KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
-                        if self.score_activation == "KL":
-                            score = -0.5 * KL_loss
-                        else:
-                            score = -recon_loss - 0.5 * KL_loss
-                    elif self.discrete_type == "gumbel":
-                        if self.score_activation == "KL":
-                            score = -self.vae2.latent_KL(next_state)
-                        elif self.score_activation == "frequency":
-                            score = self.frequency_score(next_state)
-                        else:
-                            score = -self.vae2.elbo_loss(next_state)
+                if self.beta < 0:
+                    recon, mean, std = self.vae2(next_state)
+                    recon_loss = ((recon - next_state) ** 2).mean(dim=1)
+                    KL_loss = -0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean(dim=1)
+                    score = -recon_loss - 0.5 * KL_loss
                     score = score.reshape(batch_size, -1).mean(dim=1, keepdim=True)
-                    score = torch.sigmoid(self.sigmoid_k * (score - self.beta_c))
+                    score = torch.sigmoid(100 * (score - self.beta))
                     mean_scores.append(score.mean().item())
                 else:
                     score = 1
-
                 target_Q = reward + not_done * score * self.discount * target_Q + not_done * self.discount * (1 - score) * self.vmin
 
             current_Q1, current_Q2 = self.critic(state, action)
@@ -449,7 +403,7 @@ class BCQ_state(object):
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                 target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-                # print(score)
-        print(np.mean(mean_scores))
+        # print(score)
+        print("Average state filter score:", np.mean(mean_scores))
 
         return mean_scores
